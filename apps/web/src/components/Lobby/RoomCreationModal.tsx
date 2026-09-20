@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 
 export interface RoomCreationModalProps {
   isOpen: boolean;
+  isConnected?: boolean;
   onClose: () => void;
   onCreate: (maxPlayers: 2 | 6) => void;
 }
 
 export const RoomCreationModal: React.FC<RoomCreationModalProps> = ({
   isOpen,
+  isConnected = true,
   onClose,
   onCreate
 }) => {
@@ -56,10 +58,12 @@ export const RoomCreationModal: React.FC<RoomCreationModalProps> = ({
         <button
           id="btn-confirm-create-room"
           type="button"
+          disabled={!isConnected}
           className="quick-match-btn"
           onClick={() => onCreate(maxPlayers)}
+          style={{ opacity: !isConnected ? 0.6 : 1, cursor: !isConnected ? 'not-allowed' : 'pointer' }}
         >
-          Create Room & Get Code
+          {isConnected ? 'Create Room & Get Code' : 'Connecting to Server...'}
         </button>
       </div>
     </div>

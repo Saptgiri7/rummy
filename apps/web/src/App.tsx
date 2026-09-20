@@ -489,12 +489,14 @@ export const MainApp: React.FC = () => {
       {/* Modals */}
       <RoomCreationModal
         isOpen={isCreateModalOpen}
+        isConnected={isConnected}
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={handleCreateRoom}
       />
 
       <RoomJoinModal
         isOpen={isJoinModalOpen}
+        isConnected={isConnected}
         onClose={() => setIsJoinModalOpen(false)}
         onJoin={handleJoinRoom}
       />

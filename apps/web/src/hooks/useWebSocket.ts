@@ -69,9 +69,20 @@ export function useWebSocket({ token, onMessage, onConnect, onDisconnect }: UseW
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       setIsConnected(false);
       onDisconnectRef.current?.();
+
+      // If server closes with 1008 (Unauthorized / expired token), clear stale session and reload
+      if (event.code === 1008) {
+        console.warn('[Client WS] Connection rejected with 1008 Unauthorized. Resetting session.');
+        try {
+          sessionStorage.removeItem('rummy_tab_access_token');
+          sessionStorage.removeItem('rummy_tab_user_profile');
+          window.location.reload();
+        } catch {}
+        return;
+      }
 
       // Attempt auto-reconnect if not closed manually
       if (!isManuallyClosedRef.current) {

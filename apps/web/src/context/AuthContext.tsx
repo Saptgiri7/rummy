@@ -21,6 +21,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = 'rummy_tab_access_token';
 const USER_KEY = 'rummy_tab_user_profile';
 
+function isTokenExpired(jwtToken: string): boolean {
+  try {
+    const parts = jwtToken.split('.');
+    if (parts.length !== 3) return true;
+    const payload = JSON.parse(atob(parts[1]!.replace(/-/g, '+').replace(/_/g, '/')));
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000 - 5000;
+  } catch {
+    return true;
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -40,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedToken = sessionStorage.getItem(TOKEN_KEY);
     const savedUser = sessionStorage.getItem(USER_KEY);
 
-    if (savedToken && savedUser) {
+    if (savedToken && savedUser && !isTokenExpired(savedToken)) {
       try {
         setToken(savedToken);
         setUser(JSON.parse(savedUser));
@@ -50,6 +62,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sessionStorage.removeItem(TOKEN_KEY);
         sessionStorage.removeItem(USER_KEY);
       }
+    } else if (savedToken) {
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(USER_KEY);
     }
 
     // Auto-create unique guest ONCE for this tab

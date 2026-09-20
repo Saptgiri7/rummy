@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 
 export interface RoomJoinModalProps {
   isOpen: boolean;
+  isConnected?: boolean;
   onClose: () => void;
   onJoin: (roomCode: string) => void;
 }
 
 export const RoomJoinModal: React.FC<RoomJoinModalProps> = ({
   isOpen,
+  isConnected = true,
   onClose,
   onJoin
 }) => {
@@ -51,10 +53,11 @@ export const RoomJoinModal: React.FC<RoomJoinModalProps> = ({
           <button
             id="btn-confirm-join-room"
             type="submit"
-            disabled={code.trim().length < 3}
+            disabled={code.trim().length < 3 || !isConnected}
             className="quick-match-btn"
+            style={{ opacity: !isConnected || code.trim().length < 3 ? 0.6 : 1, cursor: !isConnected ? 'not-allowed' : 'pointer' }}
           >
-            Join Table
+            {isConnected ? 'Join Table' : 'Connecting to Server...'}
           </button>
         </form>
       </div>
