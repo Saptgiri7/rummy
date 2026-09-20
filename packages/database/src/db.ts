@@ -21,3 +21,12 @@ export const db = drizzle(pool, { schema });
 export async function closeDb(): Promise<void> {
   await pool.end();
 }
+
+export async function checkDbHealth(): Promise<boolean> {
+  try {
+    await pool.query('SELECT 1');
+    return true;
+  } catch {
+    return false;
+  }
+}
