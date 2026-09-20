@@ -2,9 +2,11 @@ import http from 'node:http';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { WebSocketServer, WebSocket } from 'ws';
 
-import authRouter from './routes/auth';
+import authRouter from './routes/auth.js';
+import { WebSocketGateway } from './ws/server.js';
+import { coordinator } from './ws/room-coordinator.js';
+import { registry } from './ws/connection-registry.js';
 
 dotenv.config();
 
@@ -26,34 +28,10 @@ app.use('/api/auth', authRouter);
 
 const server = http.createServer(app);
 
-const wss = new WebSocketServer({ server, path: '/ws' });
-
-wss.on('connection', (ws: WebSocket, req) => {
-  const ip = req.socket.remoteAddress;
-  console.log(`[WS] New client connected from ${ip}`);
-
-  ws.send(JSON.stringify({
-    type: 'CONNECTED',
-    payload: {
-      serverTime: Date.now(),
-      message: 'Connected to Indian Rummy Real-Time Server'
-    }
-  }));
-
-  ws.on('message', (data) => {
-    try {
-      const message = JSON.parse(data.toString());
-      if (message.type === 'PING') {
-        ws.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
-      }
-    } catch (err) {
-      console.error('[WS] Error parsing incoming message:', err);
-    }
-  });
-
-  ws.on('close', (code, reason) => {
-    console.log(`[WS] Client disconnected: ${code} ${reason.toString()}`);
-  });
+// Mount real-time WebSocket Gateway
+const wsGateway = new WebSocketGateway({
+  server,
+  path: '/ws'
 });
 
 if (process.env['NODE_ENV'] !== 'test') {
@@ -63,4 +41,4 @@ if (process.env['NODE_ENV'] !== 'test') {
   });
 }
 
-export { app, server, wss };
+export { app, server, wsGateway, coordinator, registry };

@@ -178,6 +178,9 @@ importers:
       '@rummy/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@rummy/redis':
+        specifier: workspace:*
+        version: link:../../packages/redis
       '@rummy/shared':
         specifier: workspace:*
         version: link:../../packages/shared

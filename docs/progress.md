@@ -1,7 +1,7 @@
 # Project Build & Progress Tracker
 
 > **Last Updated**: 2026-09-20  
-> **Status**: Architecture Discovery Phase Completed — Awaiting User Approval to Begin Stage 0  
+> **Status**: Stage 5 (WebSocket Real-Time Server & Turn Loop) Completed — Ready for Stage 6  
 
 ---
 
@@ -15,8 +15,8 @@
 | **Stage 2** | Shared Contracts & Protocol Schemas (`packages/shared`) | 🟢 Completed | 100% |
 | **Stage 3** | Database Layer & Authentication (`packages/database` & `apps/server`) | 🟢 Completed | 100% |
 | **Stage 4** | Redis State Management & Distributed Locks (`packages/redis`) | 🟢 Completed | 100% |
-| **Stage 5** | WebSocket Real-Time Server & Turn Loop (`apps/server`) | 🟡 Queued / Next | 0% |
-| **Stage 6** | Matchmaking & Room Orchestration | ⚪ Queued | 0% |
+| **Stage 5** | WebSocket Real-Time Server & Turn Loop (`apps/server`) | 🟢 Completed | 100% |
+| **Stage 6** | Matchmaking & Room Orchestration | 🟡 Queued / Next | 0% |
 | **Stage 7** | React Frontend & Game Table UI (`apps/web`) | ⚪ Queued | 0% |
 | **Stage 8** | E2E Integration, Load Testing & Production Hardening | ⚪ Queued | 0% |
 
@@ -24,32 +24,34 @@
 
 ## 2. Current State Details
 
-- **Current Stage**: Stage 4 Complete — Ready for Stage 5 (WebSocket Real-Time Server & Turn Loop)
-- **Current Task**: Integrating `@rummy/redis`, `@rummy/engine`, and `@rummy/database` into the WebSocket turn loop in `apps/server`.
-- **Architectural Decisions Established**:
-  1. Pure Domain Engine (`packages/engine`) is 100% decoupled from WebSockets, HTTP, and databases.
-  2. Native WebSocket (`ws`) selected over Socket.io to eliminate protocol framing overhead and guarantee strict typed serialization.
-  3. Zod-driven shared contracts in `@rummy/shared` guaranteeing synchronized compile-time typing and runtime packet validation.
-  4. Relational Persistence via PostgreSQL 16 & Drizzle ORM in `@rummy/database`.
-  5. Ephemeral In-Memory State & Distributed Mutex via `@rummy/redis`:
-     - Distributed turn lock manager using atomic `SET NX PX` and atomic Lua script release.
-     - Higher-order `withLock` concurrency wrapper preventing turn mutation race conditions.
-     - `saveRoomState` and `getRoomState` with 1-hour rolling TTLs.
-     - Redis Pub/Sub channel (`rummy:events:room:<roomId>`) for horizontal WebSocket server clustering.
+- **Current Stage**: Stage 5 Complete — Ready for Stage 6 (Matchmaking & Room Orchestration)
+- **Implemented in Stage 5**:
+  1. `ConnectionRegistry` (`apps/server/src/ws/connection-registry.ts`):
+     - Tracks active connections by connection ID, user ID, and room membership.
+     - Supports targeted unicast and room-wide multicasting.
+  2. `HeartbeatManager` (`apps/server/src/ws/heartbeat.ts`):
+     - Periodic 30s ping sweeps detecting dead connections with 10s pong timeouts.
+     - Automatic socket termination and cleanup on missed heartbeats.
+  3. `RoomCoordinator` (`apps/server/src/ws/room-coordinator.ts`):
+     - Distributed turn execution guarded by Redis locks (`withLock`).
+     - 30-second turn timers with auto-draw from closed deck and auto-discard.
+     - 3 consecutive missed turns auto-drop policy.
+     - Anti-cheat information hiding: draws are unicast privately to the drawer (`CARD_DRAWN_PRIVATE`), while public broadcasts reveal only card count and draw source (`CARD_DRAWN_PUBLIC`).
+     - Hand declaration validator with immediate point calculation and database settlement via `recordCompletedMatch`.
+     - 60-second disconnection grace period with full state recovery upon reconnect (`GAME_RECONNECTED`).
+  4. `WebSocketGateway` (`apps/server/src/ws/server.ts`):
+     - Authenticates incoming upgrade requests via JWT access tokens.
+     - Validates incoming packets with Zod schemas (`ClientMessageSchema`).
+     - Routes messages directly to `RoomCoordinator`.
 - **Tests Executed**:
-  - `turbo build`: 5/5 packages built cleanly with zero compiler errors.
-  - `turbo typecheck`: Strict TypeScript checks passed across all workspaces.
-  - `turbo test`: 62 total tests passing across monorepo:
+  - `pnpm -r build`: 5/5 workspaces compile cleanly.
+  - `pnpm -r typecheck`: Strict TypeScript passed across all packages.
+  - `pnpm test`: 68 total tests passing across monorepo:
     * `@rummy/engine`: 30 pure domain tests
     * `@rummy/shared`: 12 schema validation tests
     * `@rummy/database`: 3 repository/PostgreSQL tests
     * `@rummy/redis`: 7 distributed lock, room store, and pub/sub tests
-    * `@rummy/server`: 10 auth & API integration tests
-  - Docker Compose healthchecks: `rummy-postgres` and `rummy-redis` both up and healthy.
-- **Bugs Discovered & Fixed**:
-  - Placed Redis test teardown at suite completion to maintain persistent test connections.
-- **Technical Debt & Legacy Cleanup**:
-  - Cleanly isolated all Redis operations and keys in `@rummy/redis`.
+    * `@rummy/server`: 16 integration tests (10 Auth/REST + 6 WebSocket real-time turn loop & multi-client tests)
 - **Next Immediate Steps**:
-  1. Present Stage 5 architecture for WebSocket Real-Time Server & Turn Loop (`apps/server`).
-  2. Implement WebSocket connection registry, JWT upgrade handshake, typed message router, 30s turn timers with auto-discard, and disconnect/reconnect state recovery.
+  1. Present Stage 6 architecture discussion (Matchmaking queues, Redis sorted sets, table orchestration, stake verification).
+  2. Await user review and approval before implementing Stage 6.
