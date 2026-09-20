@@ -224,10 +224,17 @@ importers:
         version: 3.2.7(@types/node@22.20.2)(tsx@4.23.13)
 
   packages/shared:
+    dependencies:
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
     devDependencies:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      vitest:
+        specifier: ^3.0.7
+        version: 3.2.7(@types/node@22.20.2)(tsx@4.23.13)
 
 packages:
 
@@ -1155,6 +1162,9 @@ packages:
       utf-8-validate:
         optional: true
 
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
 snapshots:
 
   '@esbuild/aix-ppc64@0.28.2':
@@ -1988,3 +1998,5 @@ snapshots:
       stackback: 0.0.2
 
   ws@8.21.3: {}
+
+  zod@3.25.76: {}
