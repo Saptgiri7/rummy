@@ -52,3 +52,9 @@ This document serves as the **persistent operational memory graph** of the proje
    - When running long test runs, use `pnpm clear:logs` (`scripts/clear-logs.sh`) to prevent disk exhaustion.
 5. **Continuous Graph Updates**:
    - Whenever any architectural, database, or feature change is made, update `docs/knowledge-graph.md` and `docs/memory-graph.md`.
+
+---
+
+## 4. Snapshot History
+
+- **`v1.0.0-multiplayer-stable` (`snapshot/stage-8-stable`)**: Created at 2026-09-20T19:25:00+05:30. Preserves Stage 8 production baseline with working real-time WebSocket room coordination, turn indicators, Playwright automated tests, clean DB schema, and anti-vibe UI design guidelines. See [snapshots/README.md](file:///home/saptgiri7/Desktop/rummy/snapshots/README.md).

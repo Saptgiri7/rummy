@@ -264,3 +264,11 @@ graph TD
 - **Start Backend**: `pnpm --filter @rummy/server dev` (Port `4000`)
 - **Start Frontend**: `pnpm --filter @rummy/web dev` (Port `3000`)
 - **Clean Service Logs**: `pnpm clear:logs`
+
+---
+
+## 8. Project Snapshots & Version Milestones
+
+| Snapshot Name | Git Tag | Git Branch | Description |
+|---|---|---|---|
+| `Stage 8 Stable` | `v1.0.0-multiplayer-stable` | `snapshot/stage-8-stable` | Complete, verified 13-card Indian Rummy platform with real-time multiplayer, turn radar banner, clean DB schema, anti-vibe design, and passing Playwright E2E suite. [snapshots/README.md](file:///home/saptgiri7/Desktop/rummy/snapshots/README.md) |
