@@ -4,6 +4,7 @@ import { ServerMessage } from '@rummy/shared';
 export interface ClientConnection {
   readonly connectionId: string;
   readonly userId: string;
+  readonly username: string;
   readonly ws: WebSocket;
   roomId?: string;
   isAlive: boolean;
@@ -15,7 +16,12 @@ class ConnectionRegistry {
   private userToConnection = new Map<string, string>();
   private roomToConnections = new Map<string, Set<string>>();
 
-  register(ws: WebSocket, userId: string, connectionId: string): ClientConnection {
+  register(
+    ws: WebSocket,
+    userId: string,
+    connectionId: string,
+    username = 'Player'
+  ): ClientConnection {
     // If user already had a previous connection, clean it up
     const existingConnId = this.userToConnection.get(userId);
     if (existingConnId && existingConnId !== connectionId) {
@@ -25,6 +31,7 @@ class ConnectionRegistry {
     const conn: ClientConnection = {
       connectionId,
       userId,
+      username,
       ws,
       isAlive: true,
       connectedAt: Date.now()

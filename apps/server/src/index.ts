@@ -4,9 +4,12 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 
 import authRouter from './routes/auth.js';
+import roomsRouter from './routes/rooms.js';
 import { WebSocketGateway } from './ws/server.js';
 import { coordinator } from './ws/room-coordinator.js';
 import { registry } from './ws/connection-registry.js';
+import { roomService } from './matchmaking/room-service.js';
+import { matchmaker } from './matchmaking/matchmaker.js';
 
 dotenv.config();
 
@@ -25,6 +28,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRouter);
+app.use('/api/rooms', roomsRouter);
 
 const server = http.createServer(app);
 
@@ -41,4 +45,4 @@ if (process.env['NODE_ENV'] !== 'test') {
   });
 }
 
-export { app, server, wsGateway, coordinator, registry };
+export { app, server, wsGateway, coordinator, registry, roomService, matchmaker };

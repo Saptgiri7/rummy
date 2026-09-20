@@ -1,7 +1,7 @@
 # Project Build & Progress Tracker
 
 > **Last Updated**: 2026-09-20  
-> **Status**: Stage 5 (WebSocket Real-Time Server & Turn Loop) Completed — Ready for Stage 6  
+> **Status**: Stage 6 (Matchmaking & Room Orchestration, Friend Code Sharing) Completed — Ready for Stage 7  
 
 ---
 
@@ -16,42 +16,39 @@
 | **Stage 3** | Database Layer & Authentication (`packages/database` & `apps/server`) | 🟢 Completed | 100% |
 | **Stage 4** | Redis State Management & Distributed Locks (`packages/redis`) | 🟢 Completed | 100% |
 | **Stage 5** | WebSocket Real-Time Server & Turn Loop (`apps/server`) | 🟢 Completed | 100% |
-| **Stage 6** | Matchmaking & Room Orchestration | 🟡 Queued / Next | 0% |
-| **Stage 7** | React Frontend & Game Table UI (`apps/web`) | ⚪ Queued | 0% |
+| **Stage 6** | Matchmaking & Room Orchestration (`apps/server`) | 🟢 Completed | 100% |
+| **Stage 7** | React Frontend & Game Table UI (`apps/web`) | 🟡 Queued / Next | 0% |
 | **Stage 8** | E2E Integration, Load Testing & Production Hardening | ⚪ Queued | 0% |
 
 ---
 
 ## 2. Current State Details
 
-- **Current Stage**: Stage 5 Complete — Ready for Stage 6 (Matchmaking & Room Orchestration)
-- **Implemented in Stage 5**:
-  1. `ConnectionRegistry` (`apps/server/src/ws/connection-registry.ts`):
-     - Tracks active connections by connection ID, user ID, and room membership.
-     - Supports targeted unicast and room-wide multicasting.
-  2. `HeartbeatManager` (`apps/server/src/ws/heartbeat.ts`):
-     - Periodic 30s ping sweeps detecting dead connections with 10s pong timeouts.
-     - Automatic socket termination and cleanup on missed heartbeats.
-  3. `RoomCoordinator` (`apps/server/src/ws/room-coordinator.ts`):
-     - Distributed turn execution guarded by Redis locks (`withLock`).
-     - 30-second turn timers with auto-draw from closed deck and auto-discard.
-     - 3 consecutive missed turns auto-drop policy.
-     - Anti-cheat information hiding: draws are unicast privately to the drawer (`CARD_DRAWN_PRIVATE`), while public broadcasts reveal only card count and draw source (`CARD_DRAWN_PUBLIC`).
-     - Hand declaration validator with immediate point calculation and database settlement via `recordCompletedMatch`.
-     - 60-second disconnection grace period with full state recovery upon reconnect (`GAME_RECONNECTED`).
-  4. `WebSocketGateway` (`apps/server/src/ws/server.ts`):
-     - Authenticates incoming upgrade requests via JWT access tokens.
-     - Validates incoming packets with Zod schemas (`ClientMessageSchema`).
-     - Routes messages directly to `RoomCoordinator`.
+- **Current Stage**: Stage 6 Complete — Ready for Stage 7 (React Frontend & Game Table UI)
+- **Implemented in Stage 6**:
+  1. **Zero Chips & Direct Play**: Removed chip and balance prerequisites entirely; scoring and ranking strictly follow standard Indian Rummy rules and points.
+  2. **Room Creation & Friendly Room Codes** (`apps/server/src/matchmaking/room-service.ts`):
+     - Players can configure 2-player or 6-player tables.
+     - Generates concise 6-character room codes (e.g. `RUM782`) mapped in Redis for instant sharing with friends.
+     - REST API (`POST /api/rooms/create`, `GET /api/rooms/:codeOrId`).
+     - WebSocket message support (`CREATE_ROOM`, `JOIN_ROOM`, `START_ROOM_GAME`, `LEAVE_ROOM`).
+  3. **Room Lobby Lifecycle**:
+     - Real-time lobby updates via `ROOM_LOBBY_UPDATE` broadcast to all waiting participants as players join or leave.
+     - Automatic game start when the room reaches target capacity (`maxPlayers`).
+     - Host on-demand start (`START_ROOM_GAME`) when $\ge 2$ players are joined.
+  4. **Public Matchmaking Option B** (`apps/server/src/matchmaking/matchmaker.ts`):
+     - Fast Redis Sorted Set queues (`rummy:matchmaking:queue:POINTS_13:2` / `:6`).
+     - Atomic Lua script pop matching required player count with zero race conditions.
+     - Instant transition to active table (`GAME_STARTED`).
 - **Tests Executed**:
   - `pnpm -r build`: 5/5 workspaces compile cleanly.
   - `pnpm -r typecheck`: Strict TypeScript passed across all packages.
-  - `pnpm test`: 68 total tests passing across monorepo:
+  - `pnpm test`: 73 total tests passing across monorepo:
     * `@rummy/engine`: 30 pure domain tests
     * `@rummy/shared`: 12 schema validation tests
     * `@rummy/database`: 3 repository/PostgreSQL tests
     * `@rummy/redis`: 7 distributed lock, room store, and pub/sub tests
-    * `@rummy/server`: 16 integration tests (10 Auth/REST + 6 WebSocket real-time turn loop & multi-client tests)
+    * `@rummy/server`: 21 integration tests (10 Auth/REST + 6 WebSocket turn loop tests + 5 Room creation, friend sharing & matchmaking tests)
 - **Next Immediate Steps**:
-  1. Present Stage 6 architecture discussion (Matchmaking queues, Redis sorted sets, table orchestration, stake verification).
-  2. Await user review and approval before implementing Stage 6.
+  1. Present Stage 7 architecture discussion (React + Vite + Tailwind CSS, 13-card table layout, card grouping/melds UI, radial turn timers, WebSocket client hook).
+  2. Await user review and approval before implementing Stage 7.

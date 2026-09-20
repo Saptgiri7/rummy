@@ -15,8 +15,7 @@ export const JoinMatchmakingMessageSchema = z.object({
   type: z.literal('JOIN_MATCHMAKING'),
   payload: z.object({
     gameVariant: z.enum(['POINTS_13']).default('POINTS_13'),
-    maxPlayers: z.union([z.literal(2), z.literal(6)]).default(2),
-    stake: z.number().int().min(0).default(10)
+    maxPlayers: z.union([z.literal(2), z.literal(6)]).default(2)
   })
 });
 
@@ -24,8 +23,29 @@ export const LeaveMatchmakingMessageSchema = z.object({
   type: z.literal('LEAVE_MATCHMAKING')
 });
 
+export const CreateRoomMessageSchema = z.object({
+  type: z.literal('CREATE_ROOM'),
+  payload: z.object({
+    maxPlayers: z.union([z.literal(2), z.literal(6)]).default(2)
+  })
+});
+
 export const JoinRoomMessageSchema = z.object({
   type: z.literal('JOIN_ROOM'),
+  payload: z.object({
+    roomId: z.string().min(1) // Can be full roomId or 6-char roomCode
+  })
+});
+
+export const StartRoomGameMessageSchema = z.object({
+  type: z.literal('START_ROOM_GAME'),
+  payload: z.object({
+    roomId: z.string().min(1)
+  })
+});
+
+export const LeaveRoomMessageSchema = z.object({
+  type: z.literal('LEAVE_ROOM'),
   payload: z.object({
     roomId: z.string().min(1)
   })
@@ -75,7 +95,10 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
   PingMessageSchema,
   JoinMatchmakingMessageSchema,
   LeaveMatchmakingMessageSchema,
+  CreateRoomMessageSchema,
   JoinRoomMessageSchema,
+  StartRoomGameMessageSchema,
+  LeaveRoomMessageSchema,
   DrawCardMessageSchema,
   DiscardCardMessageSchema,
   DeclareShowMessageSchema,
@@ -112,12 +135,42 @@ export const MatchmakingStatusMessageSchema = z.object({
   })
 });
 
+export const RoomPlayerSummarySchema = z.object({
+  id: z.string(),
+  username: z.string(),
+  isHost: z.boolean()
+});
+export type RoomPlayerSummary = z.infer<typeof RoomPlayerSummarySchema>;
+
+export const RoomCreatedMessageSchema = z.object({
+  type: z.literal('ROOM_CREATED'),
+  payload: z.object({
+    roomId: z.string(),
+    roomCode: z.string(),
+    maxPlayers: z.number(),
+    players: z.array(RoomPlayerSummarySchema),
+    isHost: z.boolean()
+  })
+});
+
 export const RoomJoinedMessageSchema = z.object({
   type: z.literal('ROOM_JOINED'),
   payload: z.object({
     roomId: z.string(),
+    roomCode: z.string().optional(),
     players: z.array(z.string()),
     maxPlayers: z.number()
+  })
+});
+
+export const RoomLobbyUpdateMessageSchema = z.object({
+  type: z.literal('ROOM_LOBBY_UPDATE'),
+  payload: z.object({
+    roomId: z.string(),
+    roomCode: z.string(),
+    maxPlayers: z.number(),
+    players: z.array(RoomPlayerSummarySchema),
+    canStart: z.boolean()
   })
 });
 
@@ -241,7 +294,9 @@ export const ServerMessageSchema = z.discriminatedUnion('type', [
   ConnectedMessageSchema,
   PongMessageSchema,
   MatchmakingStatusMessageSchema,
+  RoomCreatedMessageSchema,
   RoomJoinedMessageSchema,
+  RoomLobbyUpdateMessageSchema,
   GameStartedMessageSchema,
   CardDrawnPublicMessageSchema,
   CardDrawnPrivateMessageSchema,

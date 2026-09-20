@@ -78,7 +78,6 @@ describe('Real-Time WebSocket Server & Turn Loop Integration Tests', () => {
       });
     }
     await closeDb();
-    await redis.quit();
   });
 
   // Helper to connect WebSocket and collect initial CONNECTED frame

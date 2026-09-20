@@ -657,6 +657,7 @@ export class RoomCoordinator {
       const connMock: ClientConnection = {
         connectionId: `mock_${userId}`,
         userId,
+        username: 'Player',
         ws: null as unknown as any,
         isAlive: false,
         connectedAt: Date.now()
