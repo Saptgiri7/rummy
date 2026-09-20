@@ -6,7 +6,8 @@
     "build": "turbo build",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
-    "test:e2e": "pnpm --filter @rummy/web test:e2e"
+    "test:e2e": "pnpm --filter @rummy/web test:e2e",
+    "clear:logs": "bash scripts/clear-logs.sh"
   },
   "devEngines": {
     "packageManager": {
