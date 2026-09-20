@@ -4,6 +4,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { WebSocketServer, WebSocket } from 'ws';
 
+import authRouter from './routes/auth';
+
 dotenv.config();
 
 const app = express();
@@ -19,6 +21,8 @@ app.get('/health', (_req, res) => {
     uptime: process.uptime()
   });
 });
+
+app.use('/api/auth', authRouter);
 
 const server = http.createServer(app);
 
@@ -52,9 +56,11 @@ wss.on('connection', (ws: WebSocket, req) => {
   });
 });
 
-server.listen(port, () => {
-  console.log(`[HTTP] Rummy Server listening on http://localhost:${port}`);
-  console.log(`[WS] WebSocket endpoint active at ws://localhost:${port}/ws`);
-});
+if (process.env['NODE_ENV'] !== 'test') {
+  server.listen(port, () => {
+    console.log(`[HTTP] Rummy Server listening on http://localhost:${port}`);
+    console.log(`[WS] WebSocket endpoint active at ws://localhost:${port}/ws`);
+  });
+}
 
 export { app, server, wss };
