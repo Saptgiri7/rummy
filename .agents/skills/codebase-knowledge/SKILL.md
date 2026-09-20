@@ -51,6 +51,10 @@ This skill guides agents on navigating, developing, and maintaining the real-tim
   - `components/Table/GameTable.tsx`: Full table felt, turn banner, and opponent layout.
   - `components/Table/CenterPiles.tsx`: Closed deck, wild cut joker, open discard pile, and finish slot.
   - `components/Table/PlayerHand.tsx`: Player's 13-14 cards, meld grouping, card selection, and auto-sort.
+- **Operations & Scripts**: [scripts/](file:///home/saptgiri7/Desktop/rummy/scripts/)
+  - `README.md`: Index of operational and recovery scripts.
+  - `recover-snapshot.sh` (`pnpm recover:snapshot`): Automated disaster recovery to Stage 8 stable baseline.
+  - `clear-logs.sh` (`pnpm clear:logs`): Safe truncation of `.log` files and Playwright test artifacts.
 
 ---
 

@@ -26,6 +26,11 @@ This document serves as the **persistent operational memory graph** of the proje
 - **Context**: Vite's development proxy for WebSockets (`/ws`) occasionally dropped TCP socket connections with `EPIPE` under high-frequency message throughput.
 - **Rationale**: In development mode (`port === 3000`), the client connects directly to `ws://localhost:4000/ws?token=...`, bypassing Vite proxy hops. In production, it connects to standard relative host `/ws`.
 
+### Decision 5: Centralized `scripts/` Directory & Automated Snapshot Recovery
+- **Context**: Manual multi-step snapshot restoration (git stash, checkout, docker volume drops, psql schema injection, package builds, verification) is error-prone.
+- **Rationale**: Created `scripts/recover-snapshot.sh` (aliased as `pnpm recover:snapshot`) and documented all project tooling in `scripts/README.md`. All lifecycle, maintenance, and recovery scripts must reside strictly in `scripts/` with explicit behavioral descriptions and safety flags.
+- **Invariant**: Every operational script in `scripts/` must be idempotent, support `--help`, and be documented in `scripts/README.md`.
+
 ---
 
 ## 2. Failure Modes & Known Bug Patterns Catalog

@@ -31,9 +31,25 @@
 
 ## 🔄 How to Restore to This Snapshot
 
-If future changes cause regressions or unintended behavior, run the following commands to revert to this exact working state:
+If future changes cause regressions or unintended behavior, you can revert completely to this snapshot using the automated recovery script:
 
-### 1. Revert Code via Git
+### 🚀 One-Command Automated Recovery (Recommended)
+```bash
+# Run with confirmation prompt:
+pnpm recover:snapshot
+
+# Or run non-interactively:
+bash scripts/recover-snapshot.sh --yes
+```
+This script automatically handles Git stashing, branch checkout, Docker volume recreation, schema restoration, package build, log clearing, and test verification.
+
+---
+
+### 🛠️ Manual Restoration Steps (Alternative)
+
+If you prefer to perform the restoration steps manually:
+
+#### 1. Revert Code via Git
 ```bash
 # Option A: Switch to dedicated snapshot branch
 git checkout snapshot/stage-8-stable

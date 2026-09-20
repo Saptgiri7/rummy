@@ -254,8 +254,12 @@ graph TD
 
 ---
 
-## 7. Operational Quick-Reference
+## 7. Operational Quick-Reference & Scripts Directory
 
+All operational and maintenance scripts reside in `scripts/` (documented in [scripts/README.md](file:///home/saptgiri7/Desktop/rummy/scripts/README.md)):
+
+- **One-Command Snapshot Recovery**: `pnpm recover:snapshot` (`bash scripts/recover-snapshot.sh`)
+- **Clean Service Logs & Test Artifacts**: `pnpm clear:logs` (`bash scripts/clear-logs.sh`)
 - **Start Infrastructure**: `docker compose -f docker/docker-compose.yml up -d`
 - **Apply Database Migrations**: `pnpm --filter @rummy/database db:migrate`
 - **Run All Unit Tests**: `pnpm -r test`
@@ -263,12 +267,11 @@ graph TD
 - **Run Typecheck**: `pnpm -r typecheck`
 - **Start Backend**: `pnpm --filter @rummy/server dev` (Port `4000`)
 - **Start Frontend**: `pnpm --filter @rummy/web dev` (Port `3000`)
-- **Clean Service Logs**: `pnpm clear:logs`
 
 ---
 
 ## 8. Project Snapshots & Version Milestones
 
-| Snapshot Name | Git Tag | Git Branch | Description |
-|---|---|---|---|
-| `Stage 8 Stable` | `v1.0.0-multiplayer-stable` | `snapshot/stage-8-stable` | Complete, verified 13-card Indian Rummy platform with real-time multiplayer, turn radar banner, clean DB schema, anti-vibe design, and passing Playwright E2E suite. [snapshots/README.md](file:///home/saptgiri7/Desktop/rummy/snapshots/README.md) |
+| Snapshot Name | Git Tag | Git Branch | Recovery Command | Description |
+|---|---|---|---|---|
+| `Stage 8 Stable` | `v1.0.0-multiplayer-stable` | `snapshot/stage-8-stable` | `pnpm recover:snapshot` | Complete, verified 13-card Indian Rummy platform with real-time multiplayer, turn radar banner, clean DB schema, anti-vibe design, automated recovery script, and passing Playwright E2E suite. [snapshots/README.md](file:///home/saptgiri7/Desktop/rummy/snapshots/README.md) |
