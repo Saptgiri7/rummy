@@ -57,7 +57,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
         type="button"
         disabled={!canDiscard}
         onClick={onDiscard}
-        className="btn-game-action discard"
+        className={`btn-game-action discard ${canDiscard ? 'can-act' : ''}`}
       >
         Discard
       </button>

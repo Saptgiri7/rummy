@@ -10,7 +10,11 @@ export interface UseWebSocketOptions {
 
 export function useWebSocket({ token, onMessage, onConnect, onDisconnect }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isManuallyClosedRef = useRef<boolean>(false);
+  const messageQueueRef = useRef<ClientMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+
   const onMessageRef = useRef(onMessage);
   const onConnectRef = useRef(onConnect);
   const onDisconnectRef = useRef(onDisconnect);
@@ -22,10 +26,23 @@ export function useWebSocket({ token, onMessage, onConnect, onDisconnect }: UseW
   const connect = useCallback(() => {
     if (!token) return;
 
-    // Build WebSocket URL
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    isManuallyClosedRef.current = false;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws?token=${token}`;
+    // Connect directly to backend port 4000 in local dev to avoid Vite proxy EPIPE drops
+    const wsHost = (window.location.port === '3000' || window.location.port === '5173')
+      ? `${window.location.hostname}:4000`
+      : window.location.host;
+
+    const wsUrl = `${protocol}//${wsHost}/ws?token=${token}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -33,6 +50,14 @@ export function useWebSocket({ token, onMessage, onConnect, onDisconnect }: UseW
     ws.onopen = () => {
       setIsConnected(true);
       onConnectRef.current?.();
+
+      // Flush any queued messages that were sent while connecting
+      while (messageQueueRef.current.length > 0) {
+        const queued = messageQueueRef.current.shift();
+        if (queued && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(queued));
+        }
+      }
     };
 
     ws.onmessage = (event) => {
@@ -47,6 +72,13 @@ export function useWebSocket({ token, onMessage, onConnect, onDisconnect }: UseW
     ws.onclose = () => {
       setIsConnected(false);
       onDisconnectRef.current?.();
+
+      // Attempt auto-reconnect if not closed manually
+      if (!isManuallyClosedRef.current) {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connect();
+        }, 1500);
+      }
     };
 
     ws.onerror = (err) => {
@@ -58,6 +90,11 @@ export function useWebSocket({ token, onMessage, onConnect, onDisconnect }: UseW
     connect();
 
     return () => {
+      isManuallyClosedRef.current = true;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -70,7 +107,9 @@ export function useWebSocket({ token, onMessage, onConnect, onDisconnect }: UseW
       wsRef.current.send(JSON.stringify(message));
       return true;
     }
-    return false;
+    // Queue message so it is delivered as soon as socket opens
+    messageQueueRef.current.push(message);
+    return true;
   }, []);
 
   return {

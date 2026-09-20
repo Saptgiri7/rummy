@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 
 export interface AuthUser {
   id: string;
@@ -16,37 +16,92 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TOKEN_KEY = 'rummy_access_token';
-const USER_KEY = 'rummy_user_profile';
+// Using sessionStorage provides strict per-tab isolation.
+// This allows multiple browser tabs to run independent players concurrently on localhost.
+const TOKEN_KEY = 'rummy_tab_access_token';
+const USER_KEY = 'rummy_tab_user_profile';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isInitializingRef = useRef(false);
 
-  useEffect(() => {
-    const savedToken = localStorage.getItem(TOKEN_KEY);
-    const savedUser = localStorage.getItem(USER_KEY);
+  const initAuth = useCallback(async () => {
+    if (isInitializingRef.current) return;
+    isInitializingRef.current = true;
+
+    // Clear legacy cross-tab storage
+    try {
+      localStorage.removeItem('rummy_access_token');
+      localStorage.removeItem('rummy_user_profile');
+    } catch {}
+
+    const savedToken = sessionStorage.getItem(TOKEN_KEY);
+    const savedUser = sessionStorage.getItem(USER_KEY);
 
     if (savedToken && savedUser) {
       try {
         setToken(savedToken);
         setUser(JSON.parse(savedUser));
+        setIsLoading(false);
+        return;
       } catch {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
+        sessionStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(USER_KEY);
       }
     }
-    setIsLoading(false);
+
+    // Auto-create unique guest ONCE for this tab
+    try {
+      const randTag = Math.floor(1000 + Math.random() * 9000);
+      const guestName = `Player_${randTag}`;
+      const uniqueSuffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+      const email = `guest_${uniqueSuffix}@rummy.local`;
+      const password = `GuestPass${uniqueSuffix}!`;
+
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: guestName,
+          email,
+          password
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.accessToken) {
+        const authUser: AuthUser = {
+          id: data.user.id,
+          username: data.user.username,
+          email: data.user.email
+        };
+
+        sessionStorage.setItem(TOKEN_KEY, data.accessToken);
+        sessionStorage.setItem(USER_KEY, JSON.stringify(authUser));
+        setToken(data.accessToken);
+        setUser(authUser);
+      }
+    } catch (err) {
+      console.error('Initial guest registration error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const loginAsGuest = async (preferredName?: string) => {
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
+
+  const loginAsGuest = useCallback(async (preferredName?: string) => {
     setIsLoading(true);
     try {
-      const ts = Date.now().toString().slice(-4);
-      const guestName = preferredName?.trim() || `Player_${ts}`;
-      const email = `guest_${Date.now()}@rummy.local`;
-      const password = `GuestPass${Date.now()}!`;
+      const randTag = Math.floor(1000 + Math.random() * 9000);
+      const guestName = preferredName?.trim() || `Player_${randTag}`;
+      const uniqueSuffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+      const email = `guest_${uniqueSuffix}@rummy.local`;
+      const password = `GuestPass${uniqueSuffix}!`;
 
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -69,30 +124,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.user.email
       };
 
+      sessionStorage.setItem(TOKEN_KEY, data.accessToken);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(authUser));
       setToken(data.accessToken);
       setUser(authUser);
-      localStorage.setItem(TOKEN_KEY, data.accessToken);
-      localStorage.setItem(USER_KEY, JSON.stringify(authUser));
     } catch (err) {
       console.error('Guest login failed:', err);
-      // Fallback local mock if backend is momentarily unreachable
-      const mockId = `guest_${Math.random().toString(36).slice(2, 10)}`;
-      const fallbackUser: AuthUser = {
-        id: mockId,
-        username: preferredName || `Player_${mockId.slice(-4)}`
-      };
-      setUser(fallbackUser);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-  };
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(USER_KEY);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, token, isLoading, loginAsGuest, logout }}>

@@ -52,13 +52,6 @@ export const MainApp: React.FC = () => {
   const [roundWinnerId, setRoundWinnerId] = useState<string>('');
   const [roundScores, setRoundScores] = useState<ScoreItem[]>([]);
 
-  // Initial guest login on mount if not authenticated
-  useEffect(() => {
-    if (!token && !user) {
-      loginAsGuest();
-    }
-  }, [token, user, loginAsGuest]);
-
   // Handle incoming ServerMessages
   const handleServerMessage = useCallback((msg: ServerMessage) => {
     switch (msg.type) {
@@ -89,6 +82,8 @@ export const MainApp: React.FC = () => {
       }
 
       case 'GAME_STARTED': {
+        setIsCreateModalOpen(false);
+        setIsJoinModalOpen(false);
         setActiveLobby(null);
         setGameActive(true);
         setActiveRoomId(msg.payload.roomId);
@@ -273,15 +268,18 @@ export const MainApp: React.FC = () => {
 
   // Draw Card from Closed Pile
   const handleDrawClosed = () => {
+    console.log('[CLIENT] handleDrawClosed called! activeRoomId:', activeRoomId);
     if (!activeRoomId) return;
-    sendMessage({
+    const sent = sendMessage({
       type: 'DRAW_CARD',
       payload: { roomId: activeRoomId, source: 'CLOSED' }
     });
+    console.log('[CLIENT] DRAW_CARD message sent:', sent);
   };
 
   // Draw Card from Open Discard Pile
   const handleDrawOpen = () => {
+    console.log('[CLIENT] handleDrawOpen called! activeRoomId:', activeRoomId);
     if (!activeRoomId) return;
     sendMessage({
       type: 'DRAW_CARD',
@@ -291,6 +289,7 @@ export const MainApp: React.FC = () => {
 
   // Discard Selected Card
   const handleDiscard = () => {
+    console.log('[CLIENT] handleDiscard called! activeRoomId:', activeRoomId, 'selectedCardIds:', selectedCardIds);
     if (!activeRoomId || selectedCardIds.length !== 1) return;
     sendMessage({
       type: 'DISCARD_CARD',
@@ -345,6 +344,7 @@ export const MainApp: React.FC = () => {
 
   // Room Creation Handler
   const handleCreateRoom = (maxPlayers: 2 | 6) => {
+    setIsCreateModalOpen(false);
     sendMessage({
       type: 'CREATE_ROOM',
       payload: { maxPlayers }
@@ -353,6 +353,7 @@ export const MainApp: React.FC = () => {
 
   // Room Join Handler
   const handleJoinRoom = (roomCode: string) => {
+    setIsJoinModalOpen(false);
     sendMessage({
       type: 'JOIN_ROOM',
       payload: { roomId: roomCode }

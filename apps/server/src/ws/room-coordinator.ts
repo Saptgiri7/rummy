@@ -27,6 +27,7 @@ import {
 } from '@rummy/shared';
 import { recordCompletedMatch, PlayerSettlement } from '@rummy/database';
 import { ClientConnection, registry } from './connection-registry.js';
+import { logger } from '../utils/logger.js';
 
 export interface RoomCoordinatorConfig {
   turnTimeoutMs?: number;
@@ -44,16 +45,16 @@ export class RoomCoordinator {
 
   constructor(config: RoomCoordinatorConfig = {}) {
     this.turnTimeoutMs = config.turnTimeoutMs ?? 30000;
-    this.gracePeriodMs = config.gracePeriodMs ?? 60000;
+    this.gracePeriodMs = config.gracePeriodMs ?? 45000;
   }
 
   /**
-   * Initializes and starts a new authoritative round for a room.
+   * Initializes a room, deals cards, persists to Redis, and notifies players.
    */
   async initializeRoom(
     roomId: string,
     playerIds: string[],
-    stake = 10,
+    stake = 0,
     turnTimeoutMs = this.turnTimeoutMs
   ): Promise<GameRoundState> {
     if (playerIds.length < 2 || playerIds.length > 6) {
@@ -75,24 +76,30 @@ export class RoomCoordinator {
         const pid = playerIds[i]!;
         await setUserActiveRoom(pid, roomId);
 
-        const conn = registry.getConnectionByUserId(pid);
-        if (conn) {
-          registry.joinRoom(conn.connectionId, roomId);
-          const userHand = dealt.playerHands[i] ?? [];
+        const conns = registry.getConnectionsByUserId(pid);
+        const userHand = dealt.playerHands[i] ?? [];
 
-          const gameStartedMsg: ServerMessage = {
-            type: 'GAME_STARTED',
-            payload: {
-              roomId,
-              players: [...playerIds],
-              activePlayerId: initialState.activePlayerId,
-              wildJoker: initialState.wildJoker,
-              openCard: initialState.openPile[0]!,
-              initialHand: [...userHand],
-              turnTimeoutMs
-            }
-          };
-          registry.sendToConnection(conn.connectionId, gameStartedMsg);
+        const gameStartedMsg: ServerMessage = {
+          type: 'GAME_STARTED',
+          payload: {
+            roomId,
+            players: [...playerIds],
+            activePlayerId: initialState.activePlayerId,
+            wildJoker: initialState.wildJoker,
+            openCard: initialState.openPile[0]!,
+            initialHand: [...userHand],
+            turnTimeoutMs
+          }
+        };
+
+        if (conns.length > 0) {
+          for (const conn of conns) {
+            registry.joinRoom(conn.connectionId, roomId);
+            registry.sendToConnection(conn.connectionId, gameStartedMsg);
+          }
+          logger.info(`Dispatched GAME_STARTED to user ${pid} (${conns.length} sockets) in room ${roomId}`);
+        } else {
+          logger.warn(`No active WebSocket connections found for user ${pid} when starting room ${roomId}`);
         }
       }
 

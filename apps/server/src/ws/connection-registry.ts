@@ -1,5 +1,6 @@
 import { WebSocket } from 'ws';
 import { ServerMessage } from '@rummy/shared';
+import { logger } from '../utils/logger.js';
 
 export interface ClientConnection {
   readonly connectionId: string;
@@ -13,7 +14,7 @@ export interface ClientConnection {
 
 class ConnectionRegistry {
   private connections = new Map<string, ClientConnection>();
-  private userToConnection = new Map<string, string>();
+  private userToConnections = new Map<string, Set<string>>();
   private roomToConnections = new Map<string, Set<string>>();
 
   register(
@@ -22,12 +23,6 @@ class ConnectionRegistry {
     connectionId: string,
     username = 'Player'
   ): ClientConnection {
-    // If user already had a previous connection, clean it up
-    const existingConnId = this.userToConnection.get(userId);
-    if (existingConnId && existingConnId !== connectionId) {
-      this.unregister(existingConnId);
-    }
-
     const conn: ClientConnection = {
       connectionId,
       userId,
@@ -38,8 +33,15 @@ class ConnectionRegistry {
     };
 
     this.connections.set(connectionId, conn);
-    this.userToConnection.set(userId, connectionId);
 
+    let userConns = this.userToConnections.get(userId);
+    if (!userConns) {
+      userConns = new Set<string>();
+      this.userToConnections.set(userId, userConns);
+    }
+    userConns.add(connectionId);
+
+    logger.info(`Registered connection ${connectionId} for user ${userId} (${username}). Total conns for user: ${userConns.size}`);
     return conn;
   }
 
@@ -52,10 +54,16 @@ class ConnectionRegistry {
     }
 
     this.connections.delete(connectionId);
-    if (this.userToConnection.get(conn.userId) === connectionId) {
-      this.userToConnection.delete(conn.userId);
+
+    const userConns = this.userToConnections.get(conn.userId);
+    if (userConns) {
+      userConns.delete(connectionId);
+      if (userConns.size === 0) {
+        this.userToConnections.delete(conn.userId);
+      }
     }
 
+    logger.info(`Unregistered connection ${connectionId} for user ${conn.userId}`);
     return conn;
   }
 
@@ -71,6 +79,7 @@ class ConnectionRegistry {
       this.roomToConnections.set(roomId, roomSet);
     }
     roomSet.add(connectionId);
+    logger.info(`Connection ${connectionId} (user ${conn.userId}) joined room ${roomId}. Room occupants: ${roomSet.size}`);
   }
 
   leaveRoom(connectionId: string, roomId: string): void {
@@ -86,6 +95,7 @@ class ConnectionRegistry {
         this.roomToConnections.delete(roomId);
       }
     }
+    logger.info(`Connection ${connectionId} left room ${roomId}`);
   }
 
   getConnection(connectionId: string): ClientConnection | undefined {
@@ -93,9 +103,29 @@ class ConnectionRegistry {
   }
 
   getConnectionByUserId(userId: string): ClientConnection | undefined {
-    const connId = this.userToConnection.get(userId);
-    if (!connId) return undefined;
-    return this.connections.get(connId);
+    const userConns = this.userToConnections.get(userId);
+    if (!userConns || userConns.size === 0) return undefined;
+    // Prefer open connection
+    for (const cid of userConns) {
+      const conn = this.connections.get(cid);
+      if (conn && conn.ws.readyState === WebSocket.OPEN) {
+        return conn;
+      }
+    }
+    return undefined;
+  }
+
+  getConnectionsByUserId(userId: string): ClientConnection[] {
+    const userConns = this.userToConnections.get(userId);
+    if (!userConns) return [];
+    const result: ClientConnection[] = [];
+    for (const cid of userConns) {
+      const conn = this.connections.get(cid);
+      if (conn && conn.ws.readyState === WebSocket.OPEN) {
+        result.push(conn);
+      }
+    }
+    return result;
   }
 
   getRoomConnectionIds(roomId: string): string[] {
@@ -117,15 +147,21 @@ class ConnectionRegistry {
       conn.ws.send(JSON.stringify(message));
       return true;
     } catch (err) {
-      console.error(`[WS] Failed to send message to ${connectionId}:`, err);
+      logger.error(`Failed to send message to ${connectionId}:`, err);
       return false;
     }
   }
 
   sendToUser(userId: string, message: ServerMessage): boolean {
-    const conn = this.getConnectionByUserId(userId);
-    if (!conn) return false;
-    return this.sendToConnection(conn.connectionId, message);
+    const conns = this.getConnectionsByUserId(userId);
+    if (conns.length === 0) return false;
+    let sent = false;
+    for (const conn of conns) {
+      if (this.sendToConnection(conn.connectionId, message)) {
+        sent = true;
+      }
+    }
+    return sent;
   }
 
   broadcastToRoom(
@@ -134,6 +170,7 @@ class ConnectionRegistry {
     excludeConnectionId?: string
   ): void {
     const connIds = this.getRoomConnectionIds(roomId);
+    logger.info(`Broadcasting ${message.type} to room ${roomId} (recipients: ${connIds.length})`);
     for (const cid of connIds) {
       if (excludeConnectionId && cid === excludeConnectionId) {
         continue;

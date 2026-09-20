@@ -30,7 +30,7 @@ export const OpponentSeat: React.FC<OpponentSeatProps> = ({
         <span className="card-count-badge">{cardCount}</span>
       </div>
 
-      <div style={{ textAlign: 'center' }}>
+      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
         <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc' }}>
           {username}
         </div>
@@ -39,8 +39,8 @@ export const OpponentSeat: React.FC<OpponentSeatProps> = ({
             Disconnected
           </span>
         ) : isActiveTurn ? (
-          <span style={{ fontSize: '0.7rem', color: '#d4af37', fontWeight: 700 }}>
-            Thinking...
+          <span className="opponent-active-badge">
+            ⚡ ACTIVE TURN
           </span>
         ) : null}
       </div>

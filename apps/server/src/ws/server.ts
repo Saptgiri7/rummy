@@ -9,6 +9,7 @@ import { coordinator, RoomCoordinator } from './room-coordinator.js';
 import { roomService } from '../matchmaking/room-service.js';
 import { matchmaker } from '../matchmaking/matchmaker.js';
 import { getRoomState, getRoomIdByCode } from '@rummy/redis';
+import { logger } from '../utils/logger.js';
 
 export interface WebSocketGatewayOptions {
   server: http.Server;
@@ -32,7 +33,7 @@ export class WebSocketGateway {
       },
       (conn) => {
         this.roomCoordinator.handleDisconnect(conn).catch((err) => {
-          console.error(`[WS] Error in heartbeat disconnect handler:`, err);
+          logger.error(`Error in heartbeat disconnect handler:`, err);
         });
         matchmaker.handleDisconnect(conn.userId).catch(() => {});
         registry.unregister(conn.connectionId);
@@ -68,7 +69,7 @@ export class WebSocketGateway {
           userId = payload.userId;
           username = payload.username || 'Player';
         } catch (authErr) {
-          console.warn('[WS] Invalid or expired token presented during connection handshake:', authErr);
+          logger.warn('Invalid or expired token presented during connection handshake:', authErr);
           const errorMsg: ServerMessage = {
             type: 'ERROR',
             payload: {
@@ -97,6 +98,7 @@ export class WebSocketGateway {
         }
       };
       registry.sendToConnection(connectionId, connectedMsg);
+      logger.info(`WebSocket client connected: ${connectionId} for user ${userId} (${username})`);
 
       // Wire message listener
       ws.on('message', async (raw) => {
@@ -105,22 +107,22 @@ export class WebSocketGateway {
 
       // Wire close listener
       ws.on('close', async (code, reason) => {
-        console.log(`[WS] Client ${connectionId} disconnected (${code}: ${reason.toString()})`);
+        logger.info(`Client ${connectionId} disconnected (${code}: ${reason.toString()})`);
         try {
           await this.roomCoordinator.handleDisconnect(conn);
           await matchmaker.handleDisconnect(conn.userId);
         } catch (err) {
-          console.error(`[WS] Error in disconnect handler for ${connectionId}:`, err);
+          logger.error(`Error in disconnect handler for ${connectionId}:`, err);
         }
         registry.unregister(connectionId);
       });
 
       // Wire socket errors
       ws.on('error', (err) => {
-        console.error(`[WS] Socket error for ${connectionId}:`, err);
+        logger.error(`Socket error for ${connectionId}:`, err);
       });
     } catch (err) {
-      console.error('[WS] Connection handshake failed:', err);
+      logger.error('Connection handshake failed:', err);
       try {
         ws.close(1011, 'Internal Server Error');
       } catch {
@@ -139,6 +141,7 @@ export class WebSocketGateway {
 
       const parsed = ClientMessageSchema.safeParse(json);
       if (!parsed.success) {
+        logger.warn(`[WS Error] Validation failed for message from ${conn.userId}:`, parsed.error.issues);
         const errorMsg: ServerMessage = {
           type: 'ERROR',
           payload: {
@@ -152,6 +155,7 @@ export class WebSocketGateway {
       }
 
       const message = parsed.data;
+      logger.info(`[WS Message] From ${conn.userId} (${conn.username}): ${message.type}`);
 
       switch (message.type) {
         case 'PING': {

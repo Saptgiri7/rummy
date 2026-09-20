@@ -27,8 +27,13 @@ export const CenterPiles: React.FC<CenterPilesProps> = ({
       {/* 1. Closed Draw Deck + Wild Joker */}
       <div
         id="closed-draw-deck"
-        className="deck-pile-slot"
-        onClick={canDraw ? onDrawClosed : undefined}
+        data-testid="closed-draw-deck"
+        className={`deck-pile-slot ${canDraw ? 'can-draw-pulse' : ''}`}
+        onClick={() => {
+          if (canDraw && onDrawClosed) {
+            onDrawClosed();
+          }
+        }}
         style={{ cursor: canDraw ? 'pointer' : 'default' }}
       >
         <span className="deck-slot-label">Closed Deck</span>
@@ -55,8 +60,13 @@ export const CenterPiles: React.FC<CenterPilesProps> = ({
       {/* 2. Open Discard Pile */}
       <div
         id="open-discard-pile"
-        className="deck-pile-slot"
-        onClick={canDraw && openCard ? onDrawOpen : undefined}
+        data-testid="open-discard-pile"
+        className={`deck-pile-slot ${canDraw && openCard ? 'can-draw-pulse' : ''}`}
+        onClick={() => {
+          if (canDraw && openCard && onDrawOpen) {
+            onDrawOpen();
+          }
+        }}
         style={{ cursor: canDraw && openCard ? 'pointer' : 'default' }}
       >
         <span className="deck-slot-label">Open Pile</span>
