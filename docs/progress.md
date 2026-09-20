@@ -1,7 +1,7 @@
 # Project Build & Progress Tracker
 
 > **Last Updated**: 2026-09-20  
-> **Status**: Stage 6 (Matchmaking & Room Orchestration, Friend Code Sharing) Completed — Ready for Stage 7  
+> **Status**: Stage 7 (React Frontend & Game Table UI) Completed — Ready for Stage 8  
 
 ---
 
@@ -17,38 +17,38 @@
 | **Stage 4** | Redis State Management & Distributed Locks (`packages/redis`) | 🟢 Completed | 100% |
 | **Stage 5** | WebSocket Real-Time Server & Turn Loop (`apps/server`) | 🟢 Completed | 100% |
 | **Stage 6** | Matchmaking & Room Orchestration (`apps/server`) | 🟢 Completed | 100% |
-| **Stage 7** | React Frontend & Game Table UI (`apps/web`) | 🟡 Queued / Next | 0% |
-| **Stage 8** | E2E Integration, Load Testing & Production Hardening | ⚪ Queued | 0% |
+| **Stage 7** | React Frontend & Game Table UI (`apps/web`) | 🟢 Completed | 100% |
+| **Stage 8** | E2E Integration, Load Testing & Production Hardening | 🟡 Queued / Next | 0% |
 
 ---
 
 ## 2. Current State Details
 
-- **Current Stage**: Stage 6 Complete — Ready for Stage 7 (React Frontend & Game Table UI)
-- **Implemented in Stage 6**:
-  1. **Zero Chips & Direct Play**: Removed chip and balance prerequisites entirely; scoring and ranking strictly follow standard Indian Rummy rules and points.
-  2. **Room Creation & Friendly Room Codes** (`apps/server/src/matchmaking/room-service.ts`):
-     - Players can configure 2-player or 6-player tables.
-     - Generates concise 6-character room codes (e.g. `RUM782`) mapped in Redis for instant sharing with friends.
-     - REST API (`POST /api/rooms/create`, `GET /api/rooms/:codeOrId`).
-     - WebSocket message support (`CREATE_ROOM`, `JOIN_ROOM`, `START_ROOM_GAME`, `LEAVE_ROOM`).
-  3. **Room Lobby Lifecycle**:
-     - Real-time lobby updates via `ROOM_LOBBY_UPDATE` broadcast to all waiting participants as players join or leave.
-     - Automatic game start when the room reaches target capacity (`maxPlayers`).
-     - Host on-demand start (`START_ROOM_GAME`) when $\ge 2$ players are joined.
-  4. **Public Matchmaking Option B** (`apps/server/src/matchmaking/matchmaker.ts`):
-     - Fast Redis Sorted Set queues (`rummy:matchmaking:queue:POINTS_13:2` / `:6`).
-     - Atomic Lua script pop matching required player count with zero race conditions.
-     - Instant transition to active table (`GAME_STARTED`).
-- **Tests Executed**:
-  - `pnpm -r build`: 5/5 workspaces compile cleanly.
-  - `pnpm -r typecheck`: Strict TypeScript passed across all packages.
-  - `pnpm test`: 73 total tests passing across monorepo:
-    * `@rummy/engine`: 30 pure domain tests
-    * `@rummy/shared`: 12 schema validation tests
-    * `@rummy/database`: 3 repository/PostgreSQL tests
-    * `@rummy/redis`: 7 distributed lock, room store, and pub/sub tests
-    * `@rummy/server`: 21 integration tests (10 Auth/REST + 6 WebSocket turn loop tests + 5 Room creation, friend sharing & matchmaking tests)
+- **Current Stage**: Stage 7 Complete — Ready for Stage 8 (E2E Integration & Load Testing)
+- **Implemented in Stage 7**:
+  1. **Frontend Foundation & Design System** (`apps/web/src/index.css`):
+     - Curated Vanilla CSS design system: deep dark canvas, oval emerald felt table (`#104229` to `#072214`), gold accents (`#d4af37`), and glassmorphism.
+     - Modern Google Fonts typography (`Outfit` for headings, `Inter` for interface elements).
+     - Micro-animations for card lift, selection glow, and deal transitions.
+  2. **Real-Time Client Architecture** (`apps/web/src/hooks/useWebSocket.ts`, `apps/web/src/context/`):
+     - `useWebSocket` hook with auto-reconnection and typed `ServerMessage` dispatching.
+     - `AuthContext` with instant guest play and token persistence.
+  3. **Game Table & Playing Components** (`apps/web/src/components/Table/`):
+     - `PlayingCard`: High-fidelity card rendering with crisp suits, ranks, and Wild/Printed Joker badges.
+     - `CenterPiles`: Closed draw deck, angled Cut Wild Joker card, Open discard pile, and Declare Finish slot.
+     - `OpponentSeat`: Opponent avatars, card count badges, and real-time active turn highlights.
+     - `PlayerHand`: 13-card hand organized in melds with live pure/impure/set evaluation tags, click selection, manual grouping, and one-click auto-sort.
+     - `TurnTimer`: Circular SVG countdown with color shift (emerald $\to$ amber $\to$ pulsing red).
+     - `ActionControls`: Draw, Discard, Declare Show, and Drop (with 20/40 penalty display).
+  4. **Lobby & Results Modals** (`apps/web/src/components/Lobby/`, `apps/web/src/components/Results/`):
+     - `RoomCreationModal`: 2 or 6 players selector.
+     - `RoomJoinModal`: 6-character room code input.
+     - `WaitingLobby`: Real-time player slots, copy room code button, and host start control.
+     - `RoundResultsModal`: Victory celebration, final scores table, and return to lobby.
+- **Verification**:
+  - `pnpm -r build`: 6/6 workspaces compile cleanly with production assets in `apps/web/dist`.
+  - `pnpm -r typecheck`: Strict TypeScript passed across all 6 workspaces.
+  - `pnpm test`: All 73 tests passing across the monorepo.
 - **Next Immediate Steps**:
-  1. Present Stage 7 architecture discussion (React + Vite + Tailwind CSS, 13-card table layout, card grouping/melds UI, radial turn timers, WebSocket client hook).
-  2. Await user review and approval before implementing Stage 7.
+  1. Present Stage 8 architecture (multi-client headless simulation, high-concurrency load testing, and end-to-end integration validation).
+  2. Await user review and approval before executing Stage 8.
