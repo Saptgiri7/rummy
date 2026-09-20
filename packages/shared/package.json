@@ -1,6 +1,7 @@
 {
-  "name": "@rummy/utils",
+  "name": "@rummy/shared",
   "version": "1.0.0",
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -10,11 +11,11 @@
     }
   },
   "scripts": {
-    "dev": "tsc --watch",
-    "build": "tsc"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsc --watch"
   },
-  "type": "module",
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "typescript": "^5.7.3"
   }
 }

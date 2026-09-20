@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "turbo dev",
-    "build": "turbo build"
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test"
   },
   "devEngines": {
     "packageManager": {

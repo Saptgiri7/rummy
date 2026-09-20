@@ -1,0 +1,111 @@
+- Engine - This is the class which will be an only having once instance
+	methods Engine will contain
+	- createRoom - creates Room
+	- removeRoom - removes a Room
+
+		
+- Deck - A class which will handle the Deck related functions
+	variables Deck class will have
+	- deckOfCards<Card[]> - An array of cards, the card will be an object that object will have 3 properties
+		1. spot<string> - A,2,3,4,5,6,7,8,9,10,11,12,DeckJoker (any one is the possible value)
+		2. suit<string> - spade,heart,club,diamond,DeckJoker (any one is the possible value)
+		3. isJoker<boolean> - true or false (any one is the possible value)
+		e.g {
+			spot : '3'
+			suit: 'heart'
+			isJoker: false
+		}	
+	- isDiscardingDeck<bool> - true or false
+	
+	
+	Methods for Deck Class
+	- generateDeck(numberOfDeck<int>) - generates the required amount of cards to satisfy the number of deck, takes number of deck of required (One deck of contains 52 cards and 2 joker total = 54)
+	- shuffleDeck() - will shuffle the array deckOfCards
+	- pickJoker() - picks a random card from the deckOfCards and mark that card and its other suits and spot cad will be marked as joker e.g we pick 3 of spade, then 3 of club, 3 of diamond and 3 of heart will be also marked as joker
+	- addCard() - adds a Card to the end of  deckOfCards array
+	- removeCard() - removes the last Card from the deckOfCards array
+
+
+- Card - A class which will handlle all card relerated functions
+	variables Card class will contain
+	- spot
+	- suit
+	- isJoker
+	
+	Methods for Card class
+	- markJoker() - toggles the isJoker to true, this function will be called by the pickJoker() from the Deck class
+
+
+- Room - This class will handle all the rooms related function
+	variables Room class will contain
+	- players<PlayerState[]> - An array which have 2 - 6 player
+	- discardingPile<Deck> - the pile where our discarded card will land, the top card's face will be visible to this pile we can discard as well as we can pick
+	- openPile<Deck> - the pile from where we pick new card, the top card's face won't be visible
+	- status - has the status of game (yetToStart or running or finished)
+	- currentTurn - will have the id of the player whose turn is going on
+	- RoomId - a unique id to reference the game
+	
+	Methods of the game
+	- joinRoom - handles all the logic regarding the joining room
+	- reconnectToRoom - handles all the logic regarding the re connection
+	- startRound - handles all the logic regarding starting the round 
+	- endRound - handles all the logic regarding ending the round
+	- startGame - handles all the logic regarding starting the game
+	- endGame - handles all the logic regarding ending the game
+	- pickCard - pick card from the deck
+	- disCard - discards the card 
+	- show - declare hand
+	- autoPlay - if a player is inactive for 2 turn continuously this function handles the logic for auto picking from the openPile top card and discarding it to the discardingPile
+	- nextMove - returns whose turn is next
+	- drop - handles all the logic regarding drop
+	- validateHnad - validates the hand
+	
+- PlayerState - This class will handle the data regarding a player game state his e.g. points
+	variables PlayerState will contain
+	- player<Player> - A class which will contain player details 
+	- points - players points in the current game
+	- pickedHistory - keeps the track of the picked cards
+	- discardedHistory - keeps the track of the discarded cards
+	- hand<Hand> - player's current rounds hand
+	
+	methods playerState will contain
+	- addToPickedHistory - handles all the logic regarding add picked card to the pickedHistory
+	- addToDiscardedHistory - handles all the logic regarding add picked card to the discardedHistory
+	- addPoints - handles all the logic regarding adding points to the variable points 
+	
+- Player - This class will handle the data regarding a player
+	variables Player will contain
+	- id<UUID> - a unique ID
+	- name<string> - name of the player
+	- image<string> image link of the player
+	- username<string> - username of the player
+	- email<string> - email of the player
+	- phoneNumber<string> - phone number of the player
+	- more details - this can be added later
+	
+	methods Player Class will contain
+	- changeDetails - edits the give field and its data
+	
+- Hand - This class will handle the data regarding the inGame cards groups, i.e how they are grouped
+	variables Hand class will contain 
+	- numberOfGroups - how many groups are present in players hand max can be 6 min 1 
+	- hand<Group[]> - holds max 6 groups and min 1 group
+	
+	methods Hand class will contain
+	- addGroup - handles all the logic regarding the adding and creating group 
+	- removeGroup - handles all the logic regarding removing group
+	
+- Group - This class will handle the data regarding the group made by player
+	variables Group class will contain
+	- cards<Card[]> - will have array of cards
+	
+	methods Group class will contain
+	- addToCards - will add to the cards
+	- removeFromCards - will remove from the cards
+	
+	
+	
+- There will be single instance of Engine
+- from each room we will create a object for Room class this object will be owned Engine
+- Room will handle the complete state of the game they will orchestrate the complete game
+	

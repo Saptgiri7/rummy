@@ -1,6 +1,10 @@
 .turbo
 .env
+.env.*
+!.env.example
+*.log
 dist/
 build/
 node_modules/
 notes/
+.DS_Store
