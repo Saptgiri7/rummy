@@ -66,6 +66,11 @@ This document serves as the **persistent operational memory graph** of the proje
 - **Rationale**: Added `PATCH /api/auth/profile/username` allowing authenticated guests to update their in-game display name on the fly. Added display name prompts inside `RoomCreationModal` and `RoomJoinModal`, as well as a standalone `GuestNameModal`.
 - **Invariant**: Guests can always play and customize their display name without ever being forced to register an account.
 
+### Decision 13: Unified Platform Branding as 'Rummy Master'
+- **Context**: The application had leftover draft references to 'Rummy Royale Pro' across email templates, HTML tags, and modal dialogs.
+- **Rationale**: Formally unified all platform branding to **Rummy Master** across HTML title/metadata (`apps/web/index.html`), header navigation logo (`apps/web/src/App.tsx`), modal titles (`apps/web/src/components/Auth/AuthModal.tsx`), and transactional email templates with verified sender `noreplyrummymaster@gmail.com` (`apps/server/src/services/email-service.ts`).
+- **Invariant**: All user-facing references, transactional emails, and browser titles must consistently display 'Rummy Master'.
+
 ---
 
 ## 2. Failure Modes & Known Bug Patterns Catalog

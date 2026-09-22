@@ -113,7 +113,7 @@ export class EmailService {
             <td style="padding: 32px 32px 20px 32px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
               <div style="font-size: 28px; line-height: 1; margin-bottom: 8px;">🂡</div>
               <h1 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.05em; color: #d4af37; text-transform: uppercase;">
-                Rummy Royale Pro
+                Rummy Master
               </h1>
               <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; letter-spacing: 0.1em; text-transform: uppercase;">
                 Authentic 13-Card Indian Rummy
@@ -151,7 +151,7 @@ export class EmailService {
               </table>
 
               <p style="margin: 0; font-size: 13px; color: #64748b;">
-                Thank you for playing with Rummy Royale Pro.
+                Thank you for playing with Rummy Master.
               </p>
             </td>
           </tr>
@@ -160,7 +160,7 @@ export class EmailService {
           <tr>
             <td style="padding: 20px 32px; background: rgba(0, 0, 0, 0.3); border-top: 1px solid rgba(255, 255, 255, 0.06); text-align: center;">
               <p style="margin: 0; font-size: 11px; color: #475569;">
-                © ${new Date().getFullYear()} Rummy Royale Pro. All rights reserved. Zero chips, pure skill.
+                © ${new Date().getFullYear()} Rummy Master. All rights reserved. Zero chips, pure skill.
               </p>
             </td>
           </tr>
@@ -180,9 +180,9 @@ export class EmailService {
   async sendOtpEmail(toEmail: string, code: string, purpose = 'SIGNUP'): Promise<{ sent: boolean; previewUrl?: string }> {
     await this.initTransporter();
 
-    const fromAddress = process.env['SMTP_FROM'] || '"Rummy Royale Pro" <no-reply@rummy.pro>';
-    const subject = `Your Verification Code is ${code} — Rummy Royale Pro`;
-    const text = `Your Rummy Royale Pro verification code is: ${code}\n\nThis code will expire in 10 minutes. Never share this code with anyone.`;
+    const fromAddress = process.env['SMTP_FROM'] || '"Rummy Master" <noreplyrummymaster@gmail.com>';
+    const subject = `Your Verification Code is ${code} — Rummy Master`;
+    const text = `Your Rummy Master verification code is: ${code}\n\nThis code will expire in 10 minutes. Never share this code with anyone.`;
     const html = this.generateOtpEmailHtml(code, purpose);
 
     if (!this.transporter) {

@@ -1,6 +1,6 @@
-# 13-Card Indian Rummy Platform — Knowledge Graph
+# Rummy Master (13-Card Indian Rummy Platform) — Knowledge Graph
 
-This document serves as the **comprehensive technical knowledge graph** of the 13-Card Indian Rummy codebase. It maps system components, boundaries, entity relationships, protocol states, game rules, and frontend workflows. Any AI agent or developer can use this graph to immediately orient themselves and execute changes safely and accurately.
+This document serves as the **comprehensive technical knowledge graph** of the Rummy Master codebase. It maps system components, boundaries, entity relationships, protocol states, game rules, and frontend workflows. Any AI agent or developer can use this graph to immediately orient themselves and execute changes safely and accurately.
 
 ---
 

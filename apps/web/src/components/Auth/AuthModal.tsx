@@ -176,7 +176,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onClose={onClose}
       title={
         activeTab === 'LOGIN'
-          ? 'Sign In to Rummy Royale'
+          ? 'Sign In to Rummy Master'
           : step === 'OTP'
           ? 'Verify Security Code'
           : 'Create Your Account'

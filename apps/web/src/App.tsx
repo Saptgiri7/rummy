@@ -409,8 +409,7 @@ export const MainApp: React.FC = () => {
       <header className="app-header">
         <div className="brand-logo">
           <span>🂡</span>
-          <span>RUMMY ROYALE</span>
-          <span className="brand-badge">PRO</span>
+          <span>RUMMY MASTER</span>
         </div>
 
         <div className="header-user-info">
