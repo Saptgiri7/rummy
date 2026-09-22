@@ -126,6 +126,28 @@ describe('Authentication & User API Integration Tests', () => {
     expect(replayRes.status).toBe(401);
   });
 
+  it('PATCH /api/auth/profile/username updates display name and returns new accessToken', async () => {
+    const updatedName = `Renamed_${Date.now().toString().slice(-4)}`;
+    const res = await request(app)
+      .patch('/api/auth/profile/username')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ username: updatedName });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.accessToken).toBeDefined();
+    expect(res.body.user.username).toBe(updatedName);
+  });
+
+  it('PATCH /api/auth/profile/username rejects invalid username length', async () => {
+    const res = await request(app)
+      .patch('/api/auth/profile/username')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ username: 'ab' });
+
+    expect(res.status).toBe(400);
+  });
+
   it('POST /api/auth/logout revokes token', async () => {
     const res = await request(app)
       .post('/api/auth/logout')

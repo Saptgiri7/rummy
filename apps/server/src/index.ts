@@ -1,25 +1,40 @@
+import 'dotenv/config';
 import http from 'node:http';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { checkDbHealth } from '@rummy/database';
 import { redis } from '@rummy/redis';
 
 import authRouter from './routes/auth.js';
 import roomsRouter from './routes/rooms.js';
+import adminRouter from './routes/admin.js';
+import { findUserByUsername, createUser } from '@rummy/database';
+import { hashPassword } from './auth/jwt.js';
 import { WebSocketGateway } from './ws/server.js';
 import { coordinator } from './ws/room-coordinator.js';
 import { registry } from './ws/connection-registry.js';
 import { roomService } from './matchmaking/room-service.js';
 import { matchmaker } from './matchmaking/matchmaker.js';
 
-dotenv.config();
-
 const app = express();
 const port = process.env['PORT'] ? parseInt(process.env['PORT'], 10) : 4000;
 
 app.use(cors({ origin: process.env['CORS_ORIGIN'] || '*' }));
 app.use(express.json());
+
+// Auto-seed default platform administrator if not present
+export async function seedAdminAccount() {
+  try {
+    const existing = await findUserByUsername('admin');
+    if (!existing) {
+      const hash = await hashPassword('AdminPassword123!');
+      await createUser('admin', 'admin@rummy.pro', hash, 100000, null, 'ADMIN', true);
+      console.log('👑 [SEED] Default admin created: admin@rummy.pro (username: admin)');
+    }
+  } catch (err) {
+    console.warn('[SEED] Admin auto-seed skipped:', (err as Error).message);
+  }
+}
 
 // Comprehensive healthcheck verifying PostgreSQL and Redis health
 app.get('/health', async (_req, res) => {
@@ -53,6 +68,7 @@ app.get('/health', async (_req, res) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/rooms', roomsRouter);
+app.use('/api/admin', adminRouter);
 
 const server = http.createServer(app);
 
@@ -80,9 +96,10 @@ if (process.env['NODE_ENV'] !== 'test') {
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-  server.listen(port, () => {
+  server.listen(port, async () => {
     console.log(`[HTTP] Rummy Server listening on http://localhost:${port}`);
     console.log(`[WS] WebSocket endpoint active at ws://localhost:${port}/ws`);
+    await seedAdminAccount();
   });
 }
 

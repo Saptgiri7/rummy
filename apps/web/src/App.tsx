@@ -6,7 +6,11 @@ import { GameTable, OpponentData } from './components/Table/GameTable.js';
 import { RoomCreationModal } from './components/Lobby/RoomCreationModal.js';
 import { RoomJoinModal } from './components/Lobby/RoomJoinModal.js';
 import { WaitingLobby } from './components/Lobby/WaitingLobby.js';
+import { GuestNameModal } from './components/Lobby/GuestNameModal.js';
+import { Edit3 } from 'lucide-react';
 import { RoundResultsModal, ScoreItem } from './components/Results/RoundResultsModal.js';
+import { AuthModal } from './components/Auth/AuthModal.js';
+import { AdminDashboard } from './components/Admin/AdminDashboard.js';
 
 const RANK_ORDER: Record<string, number> = {
   'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6,
@@ -18,12 +22,16 @@ const SUIT_ORDER: Record<string, number> = {
 };
 
 export const MainApp: React.FC = () => {
-  const { user, token, loginAsGuest } = useAuth();
+  const { user, token, loginAsGuest, updateDisplayName, logout } = useAuth();
 
   // Navigation / Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [isGuestNameModalOpen, setIsGuestNameModalOpen] = useState(false);
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
+  const [currentView, setCurrentView] = useState<'LOBBY' | 'ADMIN'>('LOBBY');
 
   // Active Lobby State
   const [activeLobby, setActiveLobby] = useState<{
@@ -84,6 +92,7 @@ export const MainApp: React.FC = () => {
       case 'GAME_STARTED': {
         setIsCreateModalOpen(false);
         setIsJoinModalOpen(false);
+        setIsResultsModalOpen(false);
         setActiveLobby(null);
         setGameActive(true);
         setActiveRoomId(msg.payload.roomId);
@@ -343,8 +352,11 @@ export const MainApp: React.FC = () => {
   };
 
   // Room Creation Handler
-  const handleCreateRoom = (maxPlayers: 2 | 6) => {
+  const handleCreateRoom = async (maxPlayers: 2 | 6, chosenName?: string) => {
     setIsCreateModalOpen(false);
+    if (chosenName && chosenName !== user?.username) {
+      await updateDisplayName(chosenName);
+    }
     sendMessage({
       type: 'CREATE_ROOM',
       payload: { maxPlayers }
@@ -352,8 +364,11 @@ export const MainApp: React.FC = () => {
   };
 
   // Room Join Handler
-  const handleJoinRoom = (roomCode: string) => {
+  const handleJoinRoom = async (roomCode: string, chosenName?: string) => {
     setIsJoinModalOpen(false);
+    if (chosenName && chosenName !== user?.username) {
+      await updateDisplayName(chosenName);
+    }
     sendMessage({
       type: 'JOIN_ROOM',
       payload: { roomId: roomCode }
@@ -399,15 +414,83 @@ export const MainApp: React.FC = () => {
         </div>
 
         <div className="header-user-info">
-          <div className="user-badge">
+          {user?.role === 'ADMIN' && (
+            <button
+              type="button"
+              id="btn-admin-portal"
+              className={`header-admin-btn ${currentView === 'ADMIN' ? 'active' : ''}`}
+              onClick={() => setCurrentView((prev) => (prev === 'ADMIN' ? 'LOBBY' : 'ADMIN'))}
+            >
+              <span>👑</span>
+              <span>{currentView === 'ADMIN' ? 'Lobby' : 'Admin Portal'}</span>
+            </button>
+          )}
+
+          <div
+            className="user-badge"
+            style={{ cursor: !user?.isVerified ? 'pointer' : 'default' }}
+            onClick={() => {
+              if (!user?.isVerified) {
+                setIsGuestNameModalOpen(true);
+              }
+            }}
+            title={!user?.isVerified ? 'Click to change display name' : undefined}
+          >
             <span className={`status-dot ${isConnected ? '' : 'disconnected'}`} />
             <span>{user?.username || 'Guest Player'}</span>
+            {!user?.isVerified && (
+              <span style={{ fontSize: '0.72rem', color: '#d4af37', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: '4px' }}>
+                <Edit3 size={11} /> (Guest)
+              </span>
+            )}
+            {user?.role === 'ADMIN' && (
+              <span className="role-tag-gold">ADMIN</span>
+            )}
           </div>
+
+          {!user?.isVerified ? (
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                type="button"
+                id="btn-nav-login"
+                className="header-auth-btn"
+                onClick={() => {
+                  setAuthModalTab('LOGIN');
+                  setIsAuthModalOpen(true);
+                }}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                id="btn-nav-register"
+                className="header-auth-btn register"
+                onClick={() => {
+                  setAuthModalTab('REGISTER');
+                  setIsAuthModalOpen(true);
+                }}
+              >
+                Sign Up
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              id="btn-nav-logout"
+              className="header-auth-btn"
+              onClick={logout}
+              title="Sign Out"
+            >
+              Sign Out
+            </button>
+          )}
         </div>
       </header>
 
       {/* View Routing */}
-      {gameActive ? (
+      {currentView === 'ADMIN' ? (
+        <AdminDashboard onExit={() => setCurrentView('LOBBY')} />
+      ) : gameActive ? (
         <GameTable
           myUserId={user?.id || ''}
           activePlayerId={activePlayerId}
@@ -451,6 +534,41 @@ export const MainApp: React.FC = () => {
               Play authentic real-time multiplayer rummy. Create private tables to share with your friends, or jump into instant matchmaking. No chips, zero barriers — pure skill.
             </p>
 
+            {!user?.isVerified && (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 14px',
+                  background: 'rgba(212, 175, 55, 0.08)',
+                  border: '1px solid rgba(212, 175, 55, 0.25)',
+                  borderRadius: '20px',
+                  marginBottom: '18px',
+                  fontSize: '0.85rem',
+                  color: '#cbd5e1'
+                }}
+              >
+                <span>Playing as Guest: <strong style={{ color: '#f6e05e' }}>{user?.username}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => setIsGuestNameModalOpen(true)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#d4af37',
+                    textDecoration: 'underline',
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    padding: '0 4px',
+                    fontWeight: 600
+                  }}
+                >
+                  Change Name
+                </button>
+              </div>
+            )}
+
             <div className="action-card-grid">
               <button
                 id="btn-create-table"
@@ -487,9 +605,25 @@ export const MainApp: React.FC = () => {
       )}
 
       {/* Modals */}
+      <GuestNameModal
+        isOpen={isGuestNameModalOpen}
+        currentName={user?.username || ''}
+        onClose={() => setIsGuestNameModalOpen(false)}
+        onConfirm={async (chosenName) => {
+          setIsGuestNameModalOpen(false);
+          await updateDisplayName(chosenName);
+        }}
+        onOpenAuthModal={() => {
+          setAuthModalTab('LOGIN');
+          setIsAuthModalOpen(true);
+        }}
+      />
+
       <RoomCreationModal
         isOpen={isCreateModalOpen}
         isConnected={isConnected}
+        currentUsername={user?.username || ''}
+        isGuest={!user?.isVerified}
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={handleCreateRoom}
       />
@@ -497,6 +631,8 @@ export const MainApp: React.FC = () => {
       <RoomJoinModal
         isOpen={isJoinModalOpen}
         isConnected={isConnected}
+        currentUsername={user?.username || ''}
+        isGuest={!user?.isVerified}
         onClose={() => setIsJoinModalOpen(false)}
         onJoin={handleJoinRoom}
       />
@@ -509,7 +645,15 @@ export const MainApp: React.FC = () => {
         onPlayAgain={() => {
           setIsResultsModalOpen(false);
           setGameActive(false);
+          setActiveLobby(null);
+          setActiveRoomId(null);
         }}
+      />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialTab={authModalTab}
       />
     </div>
   );

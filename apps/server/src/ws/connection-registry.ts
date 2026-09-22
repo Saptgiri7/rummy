@@ -133,6 +133,14 @@ class ConnectionRegistry {
     return set ? Array.from(set) : [];
   }
 
+  getActiveUserCount(): number {
+    return this.userToConnections.size;
+  }
+
+  getActiveConnectionCount(): number {
+    return this.connections.size;
+  }
+
   getAllConnections(): IterableIterator<ClientConnection> {
     return this.connections.values();
   }

@@ -19,7 +19,9 @@ import {
   deleteRoomState,
   setUserActiveRoom,
   getUserActiveRoom,
-  clearUserActiveRoom
+  clearUserActiveRoom,
+  getRoomLobby,
+  deleteRoomLobby
 } from '@rummy/redis';
 import {
   ErrorCode,
@@ -46,6 +48,14 @@ export class RoomCoordinator {
   constructor(config: RoomCoordinatorConfig = {}) {
     this.turnTimeoutMs = config.turnTimeoutMs ?? 30000;
     this.gracePeriodMs = config.gracePeriodMs ?? 45000;
+  }
+
+  getActiveRoomCount(): number {
+    return this.turnTimers.size;
+  }
+
+  getActiveRoomIds(): string[] {
+    return Array.from(this.turnTimers.keys());
   }
 
   /**
@@ -496,10 +506,14 @@ export class RoomCoordinator {
       console.error(`[Coordinator] Failed to persist match in DB for room ${roomId}:`, err);
     }
 
-    // Clean up Redis room state and player bindings
+    // Clean up Redis room state, lobby, code mapping, and player bindings
     await deleteRoomState(roomId);
     for (const pid of finalState.players) {
       await clearUserActiveRoom(pid);
+    }
+    const lobby = await getRoomLobby(roomId);
+    if (lobby) {
+      await deleteRoomLobby(roomId, lobby.roomCode);
     }
     this.roomStakes.delete(roomId);
     this.cancelTurnTimer(roomId);

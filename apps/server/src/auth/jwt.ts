@@ -10,6 +10,7 @@ const REFRESH_EXPIRY = process.env['JWT_REFRESH_EXPIRY'] || '7d';
 export interface TokenPayload {
   userId: string;
   username: string;
+  role?: 'USER' | 'ADMIN';
 }
 
 export async function hashPassword(plainText: string): Promise<string> {

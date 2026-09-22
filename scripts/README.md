@@ -8,12 +8,83 @@ This directory contains operational, lifecycle, maintenance, and disaster-recove
 
 | Script | Purpose | NPM Alias | Default Safe Mode |
 |---|---|---|---|
+| [`start.sh`](file:///home/saptgiri7/Desktop/rummy/scripts/start.sh) | Start Docker infra + backend + frontend | `pnpm start` | Skips if already running |
+| [`stop.sh`](file:///home/saptgiri7/Desktop/rummy/scripts/stop.sh) | Stop all services and Docker containers | `pnpm stop` | Preserves volumes |
+| [`migrate.sh`](file:///home/saptgiri7/Desktop/rummy/scripts/migrate.sh) | Generate or apply database migrations | `pnpm migrate` | Apply only |
 | [`recover-snapshot.sh`](file:///home/saptgiri7/Desktop/rummy/scripts/recover-snapshot.sh) | Reverts code, Docker volumes, and DB to verified snapshot | `pnpm recover:snapshot` | Interactive confirmation `[y/N]` |
 | [`clear-logs.sh`](file:///home/saptgiri7/Desktop/rummy/scripts/clear-logs.sh) | Truncates `.log` files & removes test artifacts to free memory | `pnpm clear:logs` | Non-destructive truncation |
 
 ---
 
-## 1. `recover-snapshot.sh`
+## 1. `start.sh`
+
+### Purpose
+Starts the entire Rummy platform: Docker infrastructure (PostgreSQL & Redis), backend server (port 4000), and frontend dev server (port 3000). Waits for health checks before proceeding to the next service.
+
+### Flags
+| Flag | Behavior |
+|---|---|
+| _(none)_ | Full startup: Docker + backend + frontend |
+| `--infra` | Start Docker containers only |
+| `--no-infra` | Skip Docker, start app servers only (assumes Docker is already running) |
+| `--migrate` | Run database migrations after infra is up, before starting apps |
+| `--help` | Show help |
+
+### Usage
+```bash
+pnpm start                    # Full startup
+pnpm start -- --infra         # Docker only
+pnpm start -- --migrate       # Full startup + run migrations
+pnpm start -- --no-infra      # Apps only (Docker already running)
+```
+
+---
+
+## 2. `stop.sh`
+
+### Purpose
+Stops all running Rummy services: kills backend/frontend Node processes (via PID files and process name matching), then stops Docker containers.
+
+### Flags
+| Flag | Behavior |
+|---|---|
+| _(none)_ | Stop apps + Docker containers (preserves data volumes) |
+| `--keep-db` | Stop apps only, leave Docker running |
+| `--wipe` | Stop everything AND destroy Docker volumes (full data reset) |
+| `--help` | Show help |
+
+### Usage
+```bash
+pnpm stop                     # Stop all, keep data
+pnpm stop -- --keep-db        # Stop apps, keep Docker running
+pnpm stop -- --wipe           # Stop all + wipe database
+```
+
+---
+
+## 3. `migrate.sh`
+
+### Purpose
+Manages Drizzle ORM database migrations: generate new migration files from schema changes, apply pending migrations, or perform a full fresh reset.
+
+### Flags
+| Flag | Behavior |
+|---|---|
+| _(none)_ | Apply pending migrations to the running database |
+| `--generate` | Generate a new SQL migration from current Drizzle schema |
+| `--fresh` | Wipe Docker volumes, restart infra, and apply all migrations from scratch |
+| `--help` | Show help |
+
+### Usage
+```bash
+pnpm migrate                  # Apply pending migrations
+pnpm migrate -- --generate    # Generate migration from schema changes
+pnpm migrate -- --fresh       # Full reset: wipe + re-apply
+```
+
+---
+
+## 4. `recover-snapshot.sh`
 
 ### Purpose
 Restores the entire repository, Git working tree, Docker infrastructure, and PostgreSQL database back to the verified **Stage 8 Stable Multiplayer Snapshot** (`v1.0.0-multiplayer-stable` / `snapshot/stage-8-stable`).
@@ -57,7 +128,7 @@ bash scripts/recover-snapshot.sh --help
 
 ---
 
-## 2. `clear-logs.sh`
+## 5. `clear-logs.sh`
 
 ### Purpose
 Frees RAM and disk space by safely truncating log files and removing heavy test artifacts generated during test runs and browser automation.

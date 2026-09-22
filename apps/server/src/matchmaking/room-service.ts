@@ -110,6 +110,10 @@ export class RoomService {
       }
 
       const shouldStartGame = lobby.players.length === lobby.maxPlayers;
+      if (shouldStartGame) {
+        lobby.status = 'IN_PROGRESS';
+        await saveRoomLobby(lobby);
+      }
       return { lobby, shouldStartGame };
     });
   }

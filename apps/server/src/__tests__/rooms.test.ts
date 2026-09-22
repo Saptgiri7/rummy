@@ -9,7 +9,7 @@ import { WebSocketGateway } from '../ws/server.js';
 import { RoomCoordinator } from '../ws/room-coordinator.js';
 import { roomService } from '../matchmaking/room-service.js';
 import { closeDb, createUser } from '@rummy/database';
-import { redis, getRoomLobby } from '@rummy/redis';
+import { redis, getRoomLobby, clearUserActiveRoom, getMatchmakingQueueKey } from '@rummy/redis';
 import { ServerMessage } from '@rummy/shared';
 
 describe('Stage 6: Room Creation, Friend Sharing & Matchmaking Integration Tests', () => {
@@ -23,6 +23,8 @@ describe('Stage 6: Room Creation, Friend Sharing & Matchmaking Integration Tests
   let friendUser2: { id: string; username: string; token: string };
 
   beforeAll(async () => {
+    await redis.del(getMatchmakingQueueKey('POINTS_13', 2));
+    await redis.del(getMatchmakingQueueKey('POINTS_13', 6));
     const ts = Date.now();
     const u1 = await createUser(`host_${ts}`, `host_${ts}@test.com`, 'hash_pwd');
     const u2 = await createUser(`friend1_${ts}`, `friend1_${ts}@test.com`, 'hash_pwd');
@@ -70,15 +72,14 @@ describe('Stage 6: Room Creation, Friend Sharing & Matchmaking Integration Tests
     await closeDb();
   });
 
-  function connectClient(token: string): Promise<{ ws: WebSocket; initial: ServerMessage }> {
+  function connectClient(token: string): Promise<{ ws: WebSocket }> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${wsUrl}?token=${token}`);
       const timer = setTimeout(() => reject(new Error('WS connect timeout')), 3000);
 
-      ws.once('message', (raw) => {
+      ws.once('open', () => {
         clearTimeout(timer);
-        const initial = JSON.parse(raw.toString()) as ServerMessage;
-        resolve({ ws, initial });
+        resolve({ ws });
       });
 
       ws.once('error', (err) => {
@@ -195,6 +196,9 @@ describe('Stage 6: Room Creation, Friend Sharing & Matchmaking Integration Tests
 
     host.ws.close();
     friend.ws.close();
+    coordinator.cancelTurnTimer(created.payload.roomId);
+    await clearUserActiveRoom(hostUser.id);
+    await clearUserActiveRoom(friendUser1.id);
   });
 
   it('rejects joining when room is already full', async () => {
@@ -231,6 +235,10 @@ describe('Stage 6: Room Creation, Friend Sharing & Matchmaking Integration Tests
     host.ws.close();
     friend1.ws.close();
     friend2.ws.close();
+    coordinator.cancelTurnTimer(created.payload.roomId);
+    await clearUserActiveRoom(hostUser.id);
+    await clearUserActiveRoom(friendUser1.id);
+    await clearUserActiveRoom(friendUser2.id);
   });
 
   it('allows host to manually start a 6-player room when >= 2 players join', async () => {
@@ -272,9 +280,13 @@ describe('Stage 6: Room Creation, Friend Sharing & Matchmaking Integration Tests
 
     host.ws.close();
     friend1.ws.close();
+    coordinator.cancelTurnTimer(roomId);
+    await clearUserActiveRoom(hostUser.id);
+    await clearUserActiveRoom(friendUser1.id);
   });
 
   it('pairs players via public matchmaking queues without any chips', async () => {
+    await redis.del(getMatchmakingQueueKey('POINTS_13', 2));
     const p1 = await connectClient(hostUser.token);
     const p2 = await connectClient(friendUser1.token);
 
@@ -311,5 +323,8 @@ describe('Stage 6: Room Creation, Friend Sharing & Matchmaking Integration Tests
 
     p1.ws.close();
     p2.ws.close();
+    coordinator.cancelTurnTimer(g1.payload.roomId);
+    await clearUserActiveRoom(hostUser.id);
+    await clearUserActiveRoom(friendUser1.id);
   });
 });
