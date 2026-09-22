@@ -7,7 +7,8 @@ import { RoomCreationModal } from './components/Lobby/RoomCreationModal.js';
 import { RoomJoinModal } from './components/Lobby/RoomJoinModal.js';
 import { WaitingLobby } from './components/Lobby/WaitingLobby.js';
 import { GuestNameModal } from './components/Lobby/GuestNameModal.js';
-import { Edit3 } from 'lucide-react';
+import { RulesModal } from './components/Lobby/RulesModal.js';
+import { Edit3, PlusCircle, KeyRound, ChevronRight, BookOpen } from 'lucide-react';
 import { RoundResultsModal, ScoreItem } from './components/Results/RoundResultsModal.js';
 import { AuthModal } from './components/Auth/AuthModal.js';
 import { AdminDashboard } from './components/Admin/AdminDashboard.js';
@@ -32,6 +33,7 @@ export const MainApp: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [currentView, setCurrentView] = useState<'LOBBY' | 'ADMIN'>('LOBBY');
+  const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
 
   // Active Lobby State
   const [activeLobby, setActiveLobby] = useState<{
@@ -575,30 +577,48 @@ export const MainApp: React.FC = () => {
                 className="action-card-btn primary"
                 onClick={() => setIsCreateModalOpen(true)}
               >
-                <span style={{ fontSize: '1.75rem' }}>👑</span>
-                <span>Create Table</span>
+                <div className="action-card-icon-wrap primary">
+                  <PlusCircle size={26} />
+                </div>
+                <div className="action-card-content">
+                  <div className="action-card-title">Create Table</div>
+                  <div className="action-card-desc">Host a 2 or 6-player room and invite friends with code</div>
+                </div>
+                <div className="action-card-arrow">
+                  <ChevronRight size={18} />
+                </div>
               </button>
 
               <button
                 id="btn-join-with-code"
                 type="button"
-                className="action-card-btn"
+                className="action-card-btn secondary"
                 onClick={() => setIsJoinModalOpen(true)}
               >
-                <span style={{ fontSize: '1.75rem' }}>🔑</span>
-                <span>Join with Code</span>
+                <div className="action-card-icon-wrap secondary">
+                  <KeyRound size={26} />
+                </div>
+                <div className="action-card-content">
+                  <div className="action-card-title">Join with Code</div>
+                  <div className="action-card-desc">Enter a friend's 6-character room code to join</div>
+                </div>
+                <div className="action-card-arrow">
+                  <ChevronRight size={18} />
+                </div>
               </button>
             </div>
 
-            <button
-              id="btn-quick-play"
-              type="button"
-              className="quick-match-btn"
-              onClick={() => handleQuickMatch(2)}
-            >
-              <span>⚡</span>
-              <span>Quick Match (2 Players)</span>
-            </button>
+            <div className="rules-quick-guide">
+              <button
+                type="button"
+                className="btn-rules-guide"
+                onClick={() => setIsRulesModalOpen(true)}
+              >
+                <BookOpen size={16} />
+                <span>How to Play & Scoring Rules</span>
+                <span className="rules-guide-pill">Pure Sequence • Wild Jokers • 80 Pt Cap</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -653,6 +673,11 @@ export const MainApp: React.FC = () => {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         initialTab={authModalTab}
+      />
+
+      <RulesModal
+        isOpen={isRulesModalOpen}
+        onClose={() => setIsRulesModalOpen(false)}
       />
     </div>
   );

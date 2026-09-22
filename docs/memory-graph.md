@@ -71,6 +71,11 @@ This document serves as the **persistent operational memory graph** of the proje
 - **Rationale**: Formally unified all platform branding to **Rummy Master** across HTML title/metadata (`apps/web/index.html`), header navigation logo (`apps/web/src/App.tsx`), modal titles (`apps/web/src/components/Auth/AuthModal.tsx`), and transactional email templates with verified sender `noreplyrummymaster@gmail.com` (`apps/server/src/services/email-service.ts`).
 - **Invariant**: All user-facing references, transactional emails, and browser titles must consistently display 'Rummy Master'.
 
+### Decision 14: Removal of Confusing Quick Match Button & Elevation of Core Table Actions
+- **Context**: The landing page had an orphaned 'Quick Match (2 Players)' button below the 2-column grid. Clicking it silently queued in Redis without visual feedback, causing user confusion since multiplayer games are private-room and code-sharing oriented.
+- **Rationale**: Removed the orphaned Quick Match button. Upgraded the two primary action cards ('Create Table' & 'Join with Code') with human-grade craftsmanship: Lucide icons (`<PlusCircle />`, `<KeyRound />`), crisp subtitles, subtle arrow transitions, and emerald/gold gradients. Added an interactive 'How to Play & Scoring Rules' guide modal (`RulesModal.tsx`) providing immediate value to players.
+- **Invariant**: The primary landing view must focus cleanly on Create Table and Join with Code without dead or orphaned action buttons.
+
 ---
 
 ## 2. Failure Modes & Known Bug Patterns Catalog

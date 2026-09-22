@@ -299,6 +299,7 @@ graph TD
     
     ViewHero --> ModalCreate["RoomCreationModal.tsx"]
     ViewHero --> ModalJoin["RoomJoinModal.tsx"]
+    ViewHero --> ModalRules["RulesModal.tsx<br/>(How to Play & Scoring Guide)"]
     
     ModalAuth --> TabLogin["Sign In Tab<br/>(Username/Email/Phone + Password)"]
     ModalAuth --> TabRegister["Register Tab<br/>(Step 1: Details, Step 2: OTP Verify)"]
@@ -356,6 +357,7 @@ The web application enforces human-grade craftsmanship adhering to anti-vibe des
 | `Modal` | `components/ui/Modal.tsx` | Accessible dialog with backdrop blur, focus trapping, Escape dismissal, responsive card layout. |
 | `OtpInput` | `components/ui/OtpInput.tsx` | 6 discrete digit inputs with clipboard paste auto-distribution, backspace navigation, tabular numerals. |
 | `GuestNameModal` | `components/Lobby/GuestNameModal.tsx` | Non-blocking display name customization for guest players before creating or joining rooms. |
+| `RulesModal` | `components/Lobby/RulesModal.tsx` | Comprehensive modal explaining Indian Rummy guidelines, pure sequences, wild jokers, and scoring penalty caps. |
 
 ---
 
