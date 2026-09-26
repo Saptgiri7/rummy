@@ -8,7 +8,7 @@ import { RoomJoinModal } from './components/Lobby/RoomJoinModal.js';
 import { WaitingLobby } from './components/Lobby/WaitingLobby.js';
 import { GuestNameModal } from './components/Lobby/GuestNameModal.js';
 import { RulesModal } from './components/Lobby/RulesModal.js';
-import { Edit3, PlusCircle, KeyRound, ChevronRight, BookOpen } from 'lucide-react';
+import { Edit3, PlusCircle, KeyRound, BookOpen, LogOut } from 'lucide-react';
 import { RoundResultsModal, ScoreItem } from './components/Results/RoundResultsModal.js';
 import { AuthModal } from './components/Auth/AuthModal.js';
 import { AdminDashboard } from './components/Admin/AdminDashboard.js';
@@ -189,6 +189,46 @@ export const MainApp: React.FC = () => {
         break;
       }
 
+      case 'PLAYER_DISCONNECTED': {
+        setOpponents((prev) =>
+          prev.map((opp) =>
+            opp.id === msg.payload.playerId
+              ? { ...opp, isDisconnected: true }
+              : opp
+          )
+        );
+        break;
+      }
+
+      case 'PLAYER_RECONNECTED': {
+        setOpponents((prev) =>
+          prev.map((opp) =>
+            opp.id === msg.payload.playerId
+              ? { ...opp, isDisconnected: false }
+              : opp
+          )
+        );
+        break;
+      }
+
+      case 'PLAYER_DROPPED': {
+        setOpponents((prev) =>
+          prev.map((opp) =>
+            opp.id === msg.payload.playerId
+              ? { ...opp, isActiveTurn: false, isDisconnected: true }
+              : opp.id === msg.payload.nextActivePlayerId
+              ? { ...opp, isActiveTurn: true }
+              : opp
+          )
+        );
+        if (msg.payload.nextActivePlayerId) {
+          setActivePlayerId(msg.payload.nextActivePlayerId);
+          setTurnPhase('WAITING_DRAW');
+          setRemainingTurnTimeMs(30000);
+        }
+        break;
+      }
+
       case 'ROUND_COMPLETED': {
         setRoundWinnerId(msg.payload.winnerId);
         setRoundScores(msg.payload.scores);
@@ -298,24 +338,71 @@ export const MainApp: React.FC = () => {
     });
   };
 
-  // Discard Selected Card
-  const handleDiscard = () => {
-    console.log('[CLIENT] handleDiscard called! activeRoomId:', activeRoomId, 'selectedCardIds:', selectedCardIds);
-    if (!activeRoomId || selectedCardIds.length !== 1) return;
+  // Discard Card (via click or drag-and-drop)
+  const handleDiscard = (targetCardId?: string) => {
+    const cardIdToDiscard = targetCardId || (selectedCardIds.length === 1 ? selectedCardIds[0] : undefined);
+    console.log('[CLIENT] handleDiscard called! activeRoomId:', activeRoomId, 'cardId:', cardIdToDiscard);
+    if (!activeRoomId || !cardIdToDiscard) return;
     sendMessage({
       type: 'DISCARD_CARD',
-      payload: { roomId: activeRoomId, cardId: selectedCardIds[0]! }
+      payload: { roomId: activeRoomId, cardId: cardIdToDiscard }
     });
+    setSelectedCardIds([]);
+    setSelectedFinishCard(null);
   };
 
-  // Pick Finish Card for Declaration
-  const handleFinishSlotClick = () => {
-    if (selectedCardIds.length === 1) {
-      const finishCard = handGroups.flat().find((c) => c.id === selectedCardIds[0]);
+  // Pick Finish Card for Declaration (via slot click or drag-and-drop)
+  const handleFinishSlotClick = (targetCardId?: string) => {
+    const cardId = targetCardId || (selectedCardIds.length === 1 ? selectedCardIds[0] : undefined);
+    if (cardId) {
+      const finishCard = handGroups.flat().find((c) => c.id === cardId);
       if (finishCard) {
         setSelectedFinishCard(finishCard);
       }
     }
+  };
+
+  // Move / Reorder Card within or between groups (or create new group)
+  const handleMoveCard = (
+    cardId: string,
+    targetGroupIndex: number,
+    targetCardIndex?: number
+  ) => {
+    setHandGroups((prevGroups) => {
+      // Find where card currently is
+      let movingCard: CardDto | null = null;
+      const filtered = prevGroups.map((group) => {
+        const remaining: CardDto[] = [];
+        for (const c of group) {
+          if (c.id === cardId) {
+            movingCard = c;
+          } else {
+            remaining.push(c);
+          }
+        }
+        return remaining;
+      });
+
+      if (!movingCard) return prevGroups;
+
+      // Clean empty groups before inserting if forming a new group
+      let cleanGroups = filtered.filter((g) => g.length > 0);
+
+      if (targetGroupIndex >= cleanGroups.length) {
+        // Create brand new group with this card
+        cleanGroups.push([movingCard]);
+      } else {
+        const targetGroup = [...cleanGroups[targetGroupIndex]!];
+        if (targetCardIndex !== undefined && targetCardIndex >= 0 && targetCardIndex <= targetGroup.length) {
+          targetGroup.splice(targetCardIndex, 0, movingCard);
+        } else {
+          targetGroup.push(movingCard);
+        }
+        cleanGroups[targetGroupIndex] = targetGroup;
+      }
+
+      return cleanGroups;
+    });
   };
 
   // Declare Hand Show
@@ -350,6 +437,23 @@ export const MainApp: React.FC = () => {
         type: 'DROP_HAND',
         payload: { roomId: activeRoomId }
       });
+    }
+  };
+
+  // Exit Table
+  const handleExitTable = () => {
+    if (!activeRoomId) return;
+    if (confirm('Are you sure you want to exit this table? In 2-player matches, exiting forfeits the match to your opponent.')) {
+      sendMessage({
+        type: 'LEAVE_TABLE',
+        payload: { roomId: activeRoomId }
+      });
+      setGameActive(false);
+      setActiveRoomId(null);
+      setActiveLobby(null);
+      setSelectedCardIds([]);
+      setSelectedFinishCard(null);
+      setHandGroups([]);
     }
   };
 
@@ -449,6 +553,19 @@ export const MainApp: React.FC = () => {
             )}
           </div>
 
+          {gameActive && (
+            <button
+              id="btn-exit-table"
+              type="button"
+              className="header-exit-btn"
+              onClick={handleExitTable}
+              title="Exit and forfeit match"
+            >
+              <LogOut size={14} />
+              <span>Exit Table</span>
+            </button>
+          )}
+
           {!user?.isVerified ? (
             <div style={{ display: 'flex', gap: '6px' }}>
               <button
@@ -507,11 +624,13 @@ export const MainApp: React.FC = () => {
           onCardClick={handleCardClick}
           onGroupSelected={handleGroupSelected}
           onAutoSort={handleAutoSort}
+          onMoveCard={handleMoveCard}
           onDrawClosed={handleDrawClosed}
           onDrawOpen={handleDrawOpen}
           onDiscard={handleDiscard}
           onDeclare={handleDeclare}
           onDrop={handleDrop}
+          onExitTable={handleExitTable}
           onFinishSlotClick={handleFinishSlotClick}
         />
       ) : activeLobby ? (
@@ -532,7 +651,7 @@ export const MainApp: React.FC = () => {
           <div className="home-hero-card">
             <h1 className="hero-title">13-Card Indian Rummy</h1>
             <p className="hero-subtitle">
-              Play authentic real-time multiplayer rummy. Create private tables to share with your friends, or jump into instant matchmaking. No chips, zero barriers — pure skill.
+              Play authentic real-time multiplayer rummy. Create private tables to share with your friends, or join with a room code. No chips, zero barriers. Pure skill.
             </p>
 
             {!user?.isVerified && (
@@ -545,7 +664,7 @@ export const MainApp: React.FC = () => {
                   background: 'rgba(212, 175, 55, 0.08)',
                   border: '1px solid rgba(212, 175, 55, 0.25)',
                   borderRadius: '20px',
-                  marginBottom: '18px',
+                  marginBottom: '20px',
                   fontSize: '0.85rem',
                   color: '#cbd5e1'
                 }}
@@ -577,46 +696,29 @@ export const MainApp: React.FC = () => {
                 className="action-card-btn primary"
                 onClick={() => setIsCreateModalOpen(true)}
               >
-                <div className="action-card-icon-wrap primary">
-                  <PlusCircle size={26} />
-                </div>
-                <div className="action-card-content">
-                  <div className="action-card-title">Create Table</div>
-                  <div className="action-card-desc">Host a 2 or 6-player room and invite friends with code</div>
-                </div>
-                <div className="action-card-arrow">
-                  <ChevronRight size={18} />
-                </div>
+                <PlusCircle size={32} />
+                <span>Create Table</span>
               </button>
 
               <button
                 id="btn-join-with-code"
                 type="button"
-                className="action-card-btn secondary"
+                className="action-card-btn"
                 onClick={() => setIsJoinModalOpen(true)}
               >
-                <div className="action-card-icon-wrap secondary">
-                  <KeyRound size={26} />
-                </div>
-                <div className="action-card-content">
-                  <div className="action-card-title">Join with Code</div>
-                  <div className="action-card-desc">Enter a friend's 6-character room code to join</div>
-                </div>
-                <div className="action-card-arrow">
-                  <ChevronRight size={18} />
-                </div>
+                <KeyRound size={32} />
+                <span>Join with Code</span>
               </button>
             </div>
 
             <div className="rules-quick-guide">
               <button
                 type="button"
-                className="btn-rules-guide"
+                className="btn-rules-link"
                 onClick={() => setIsRulesModalOpen(true)}
               >
                 <BookOpen size={16} />
-                <span>How to Play & Scoring Rules</span>
-                <span className="rules-guide-pill">Pure Sequence • Wild Jokers • 80 Pt Cap</span>
+                <span>How to Play and Scoring Guide</span>
               </button>
             </div>
           </div>

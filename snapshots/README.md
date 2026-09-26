@@ -1,4 +1,4 @@
-# Project Snapshot — Stage 8 Multiplayer & Platform Hardening
+# Project Snapshot: Stage 8 Multiplayer & Platform Hardening
 
 - **Snapshot Name**: `snapshot/stage-8-stable`
 - **Git Tag**: `v1.0.0-multiplayer-stable`

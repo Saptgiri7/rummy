@@ -82,14 +82,14 @@ export function calculateOpponentPenalty(
   let breakdown = '';
 
   if (!hasPure) {
-    // Case 1: No pure sequence — all cards are penalized
+    // Case 1: No pure sequence - all cards are penalized
     for (const card of allCards) {
       rawPoints += getCardPenaltyPoints(card, wildJoker);
     }
     unmeldedCount = allCards.length;
     breakdown = 'No pure sequence: all cards penalized';
   } else if (!hasSecondSeq) {
-    // Case 2: Has pure sequence, but missing second sequence — only pure sequences are saved
+    // Case 2: Has pure sequence, but missing second sequence - only pure sequences are saved
     for (let i = 0; i < melds.length; i++) {
       const group = melds[i]!;
       if (pureSequenceIndices.has(i)) {
@@ -103,7 +103,7 @@ export function calculateOpponentPenalty(
     }
     breakdown = 'Only pure sequence saved; missing second sequence';
   } else {
-    // Case 3: Has pure + second sequence — all valid groups are saved
+    // Case 3: Has pure + second sequence - all valid groups are saved
     for (let i = 0; i < melds.length; i++) {
       const group = melds[i]!;
       const isValidMeld = pureSequenceIndices.has(i) || impureSequenceIndices.has(i) || setIndices.has(i);

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# start.sh — Start all Rummy platform services
+# start.sh : Start all Rummy platform services
 # =============================================================================
 # Usage:
 #   bash scripts/start.sh           # Start Docker infra + backend + frontend
@@ -90,7 +90,7 @@ if [ "$SKIP_INFRA" = false ]; then
 
   # Check if containers are already running
   if docker compose -f "$COMPOSE_FILE" ps --status running 2>/dev/null | grep -q "rummy-postgres"; then
-    print_warn "Docker containers already running — skipping startup"
+    print_warn "Docker containers already running : skipping startup"
   else
     docker compose -f "$COMPOSE_FILE" up -d 2>&1
     print_ok "Docker containers started"
@@ -158,7 +158,7 @@ RETRIES=20
 until curl -s http://localhost:4000/api/auth/guest -X POST -H "Content-Type: application/json" -d '{}' >/dev/null 2>&1 || lsof -i :4000 -sTCP:LISTEN >/dev/null 2>&1; do
   RETRIES=$((RETRIES - 1))
   if [ $RETRIES -le 0 ]; then
-    print_warn "Backend may still be starting — check logs/server.log"
+    print_warn "Backend may still be starting : check logs/server.log"
     break
   fi
   sleep 1
@@ -177,7 +177,7 @@ RETRIES=15
 until curl -s http://localhost:3000 >/dev/null 2>&1; do
   RETRIES=$((RETRIES - 1))
   if [ $RETRIES -le 0 ]; then
-    print_warn "Frontend may still be starting — check logs/web.log"
+    print_warn "Frontend may still be starting : check logs/web.log"
     break
   fi
   sleep 1
@@ -205,7 +205,7 @@ done
 # ─── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}  🃏 Rummy Platform — All Services Running${NC}"
+echo -e "${GREEN}  🃏 Rummy Platform : All Services Running${NC}"
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
 echo -e "  PostgreSQL:  ${CYAN}localhost:5432${NC}"
 echo -e "  Redis:       ${CYAN}localhost:6379${NC}"

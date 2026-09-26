@@ -281,7 +281,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     <div key={evt.id} className="telemetry-item">
                       <div className="telemetry-type">{evt.eventType}</div>
                       <div className="telemetry-meta">
-                        {evt.metadata ? evt.metadata.slice(0, 45) : '—'}
+                        {evt.metadata ? evt.metadata.slice(0, 45) : '-'}
                       </div>
                       <div className="telemetry-time">
                         {new Date(evt.createdAt).toLocaleTimeString()}

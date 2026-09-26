@@ -92,4 +92,57 @@ test.describe('13-Card Indian Rummy Multiplayer Browser E2E Flow', () => {
     await hostContext.close();
     await guestContext.close();
   });
+
+  test('Player exits table during heads-up match; remaining player is immediately declared winner', async ({ browser }) => {
+    const hostContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+
+    const pageHost = await hostContext.newPage();
+    const pageGuest = await guestContext.newPage();
+
+    // 1. Host creates table
+    await pageHost.goto('/');
+    await expect(pageHost.locator('#btn-create-table')).toBeVisible({ timeout: 15000 });
+    await pageHost.click('#btn-create-table');
+    await expect(pageHost.locator('#btn-confirm-create-room')).toBeVisible();
+    await pageHost.click('#btn-confirm-create-room');
+
+    // 2. Obtain room code
+    await expect(pageHost.locator('.room-code-text')).toBeVisible({ timeout: 10000 });
+    const roomCodeText = (await pageHost.locator('.room-code-text').textContent())?.trim();
+    expect(roomCodeText).toBeDefined();
+
+    // 3. Guest joins table
+    await pageGuest.goto('/');
+    await expect(pageGuest.locator('#btn-join-with-code')).toBeVisible({ timeout: 15000 });
+    await pageGuest.click('#btn-join-with-code');
+    await pageGuest.fill('#input-room-code', roomCodeText!);
+    await pageGuest.click('#btn-confirm-join-room');
+
+    // 4. Both transition to active table
+    await expect(pageHost.locator('[data-testid="game-table"]')).toBeVisible({ timeout: 15000 });
+    await expect(pageGuest.locator('[data-testid="game-table"]')).toBeVisible({ timeout: 15000 });
+
+    // 5. Guest clicks Exit Table button
+    pageGuest.on('dialog', (dialog) => dialog.accept());
+    const exitBtn = pageGuest.locator('#btn-exit-table');
+    await expect(exitBtn).toBeVisible();
+    await exitBtn.click();
+
+    // 6. Guest is returned to the lobby
+    await expect(pageGuest.locator('#btn-create-table')).toBeVisible({ timeout: 10000 });
+
+    // 7. Host immediately sees the Round Results Victory Modal with WINNER status
+    await expect(pageHost.locator('[data-testid="round-results-modal"]')).toBeVisible({ timeout: 15000 });
+    await expect(pageHost.locator('[data-testid="round-results-modal"]')).toContainText('Victory');
+    await expect(pageHost.locator('[data-testid="round-results-modal"]')).toContainText('WINNER');
+
+    // 8. Host clicks Return to Lobby
+    await pageHost.click('#btn-play-again');
+    await expect(pageHost.locator('#btn-create-table')).toBeVisible({ timeout: 10000 });
+
+    // Clean up
+    await hostContext.close();
+    await guestContext.close();
+  });
 });

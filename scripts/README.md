@@ -8,11 +8,11 @@ This directory contains operational, lifecycle, maintenance, and disaster-recove
 
 | Script | Purpose | NPM Alias | Default Safe Mode |
 |---|---|---|---|
-| [`start.sh`](file:///home/saptgiri7/Desktop/rummy/scripts/start.sh) | Start Docker infra + backend + frontend | `pnpm start` | Skips if already running |
-| [`stop.sh`](file:///home/saptgiri7/Desktop/rummy/scripts/stop.sh) | Stop all services and Docker containers | `pnpm stop` | Preserves volumes |
-| [`migrate.sh`](file:///home/saptgiri7/Desktop/rummy/scripts/migrate.sh) | Generate or apply database migrations | `pnpm migrate` | Apply only |
-| [`recover-snapshot.sh`](file:///home/saptgiri7/Desktop/rummy/scripts/recover-snapshot.sh) | Reverts code, Docker volumes, and DB to verified snapshot | `pnpm recover:snapshot` | Interactive confirmation `[y/N]` |
-| [`clear-logs.sh`](file:///home/saptgiri7/Desktop/rummy/scripts/clear-logs.sh) | Truncates `.log` files & removes test artifacts to free memory | `pnpm clear:logs` | Non-destructive truncation |
+| [`start.sh`](./start.sh) | Start Docker infra + backend + frontend | `pnpm start` | Skips if already running |
+| [`stop.sh`](./stop.sh) | Stop all services and Docker containers | `pnpm stop` | Preserves volumes |
+| [`migrate.sh`](./migrate.sh) | Generate or apply database migrations | `pnpm migrate` | Apply only |
+| [`recover-snapshot.sh`](./recover-snapshot.sh) | Reverts code, Docker volumes, and DB to verified snapshot | `pnpm recover:snapshot` | Interactive confirmation `[y/N]` |
+| [`clear-logs.sh`](./clear-logs.sh) | Truncates `.log` files & removes test artifacts to free memory | `pnpm clear:logs` | Non-destructive truncation |
 
 ---
 
@@ -161,5 +161,5 @@ When adding new operational or automation scripts to this repository:
 2. **Permissions**: Make bash scripts executable: `chmod +x scripts/<script-name>.sh`.
 3. **Safety Flags**: Use `set -e` at the top of bash scripts so failures halt execution immediately.
 4. **Documentation**: Add an entry to this `scripts/README.md` detailing purpose, lifecycle, and usage flags.
-5. **NPM Alias**: Add a corresponding script entry to root [package.json](file:///home/saptgiri7/Desktop/rummy/package.json).
-6. **Knowledge Sync**: Update [docs/knowledge-graph.md](file:///home/saptgiri7/Desktop/rummy/docs/knowledge-graph.md) and [docs/memory-graph.md](file:///home/saptgiri7/Desktop/rummy/docs/memory-graph.md) to register the new tool.
+5. **NPM Alias**: Add a corresponding script entry to root [package.json](../package.json).
+6. **Documentation**: Update the script index in this directory and in the root [README.md](../README.md).

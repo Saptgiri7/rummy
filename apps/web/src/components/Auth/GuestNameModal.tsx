@@ -57,7 +57,7 @@ export const GuestNameModal: React.FC<GuestNameModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Choose Your Table Name"
-      subtitle="Playing as Guest — Zero chips, pure skill"
+      subtitle="Playing as Guest. Zero chips, pure skill"
       icon={<Sparkles size={20} />}
       maxWidth="440px"
     >

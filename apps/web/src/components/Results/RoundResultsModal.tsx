@@ -1,4 +1,5 @@
 import React from 'react';
+import { Trophy, Award } from 'lucide-react';
 
 export interface ScoreItem {
   playerId: string;
@@ -29,13 +30,26 @@ export const RoundResultsModal: React.FC<RoundResultsModalProps> = ({
     <div className="modal-overlay" data-testid="round-results-modal">
       <div className="modal-content" style={{ maxWidth: '540px' }}>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '8px' }}>
-            {isMeWinner ? '🎉' : '👏'}
+          <div
+            style={{
+              width: '64px',
+              height: '64px',
+              margin: '0 auto 12px auto',
+              borderRadius: '50%',
+              background: isMeWinner ? 'rgba(212, 175, 55, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+              border: isMeWinner ? '1px solid rgba(212, 175, 55, 0.4)' : '1px solid rgba(148, 163, 184, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: isMeWinner ? '#fbbf24' : '#cbd5e1'
+            }}
+          >
+            {isMeWinner ? <Trophy size={32} /> : <Award size={32} />}
           </div>
-          <h2>{isMeWinner ? 'Victory!' : 'Round Completed'}</h2>
+          <h2>{isMeWinner ? 'Victory' : 'Round Completed'}</h2>
           <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '4px' }}>
             {isMeWinner
-              ? 'Congratulations! You made a valid declaration and scored 0 points!'
+              ? 'Congratulations! You won the round.'
               : `Winner: ${winnerId.slice(0, 10)}... scored 0 points`}
           </p>
         </div>

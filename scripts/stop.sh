@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# stop.sh — Stop all Rummy platform services
+# stop.sh : Stop all Rummy platform services
 # =============================================================================
 # Usage:
 #   bash scripts/stop.sh            # Stop app services + Docker containers
@@ -83,11 +83,11 @@ if [ "$KEEP_DB" = false ]; then
   if [ "$WIPE_VOLUMES" = true ]; then
     print_step "Stopping Docker containers AND wiping volumes..."
     docker compose -f "$COMPOSE_FILE" down -v --remove-orphans 2>&1
-    print_ok "Docker containers stopped — volumes wiped (clean slate)"
+    print_ok "Docker containers stopped : volumes wiped (clean slate)"
   else
     print_step "Stopping Docker containers (preserving volumes)..."
     docker compose -f "$COMPOSE_FILE" down --remove-orphans 2>&1
-    print_ok "Docker containers stopped — data preserved"
+    print_ok "Docker containers stopped : data preserved"
   fi
 else
   print_warn "Docker containers left running (--keep-db)"
@@ -96,10 +96,10 @@ fi
 # ─── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}  🛑 Rummy Platform — All Services Stopped${NC}"
+echo -e "${GREEN}  🛑 Rummy Platform : All Services Stopped${NC}"
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
 if [ "$WIPE_VOLUMES" = true ]; then
-  echo -e "  ${YELLOW}Docker volumes wiped — run migrations on next start${NC}"
+  echo -e "  ${YELLOW}Docker volumes wiped : run migrations on next start${NC}"
   echo -e "  Next: ${CYAN}pnpm start -- --migrate${NC}"
 elif [ "$KEEP_DB" = true ]; then
   echo -e "  ${YELLOW}Docker infra still running${NC}"

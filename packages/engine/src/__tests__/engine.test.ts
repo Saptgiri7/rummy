@@ -14,6 +14,7 @@ import {
   executeDiscard,
   executeDeclare,
   executeDrop,
+  executeForfeit,
   FIRST_DROP_PENALTY,
   MIDDLE_DROP_PENALTY,
   MAX_PENALTY_POINTS
@@ -461,5 +462,45 @@ describe('Turn State Machine (FSM)', () => {
     expect(dropRes.nextState.turnPhase).toBe('ROUND_ENDED');
     expect(dropRes.nextState.roundWinnerId).toBe(p2);
     expect(dropRes.event.payload['penalty']).toBe(FIRST_DROP_PENALTY);
+  });
+
+  it('allows out-of-turn forfeit and awards immediate win to remaining player in heads-up match', () => {
+    const deck = createStandardRummyDeck(2);
+    const deal = dealInitialGame(deck, 2);
+    const p1 = 'player_1';
+    const p2 = 'player_2';
+
+    const state = createInitialRoundState('room_103', [p1, p2], deal, 0);
+    // Active player is p1. Player 2 (inactive) decides to exit table / forfeit
+    expect(state.activePlayerId).toBe(p1);
+
+    const forfeitRes = executeForfeit(state, p2);
+    expect(forfeitRes.nextState.turnPhase).toBe('ROUND_ENDED');
+    expect(forfeitRes.nextState.roundWinnerId).toBe(p1);
+    expect(forfeitRes.nextState.playerStatuses[p2]).toBe('DROPPED');
+  });
+
+  it('allows forfeit in 3+ player games, continuing match until 2 remaining, then 1 remaining wins', () => {
+    const deck = createStandardRummyDeck(2);
+    const deal = dealInitialGame(deck, 3);
+    const p1 = 'p1';
+    const p2 = 'p2';
+    const p3 = 'p3';
+
+    const state = createInitialRoundState('room_104', [p1, p2, p3], deal, 0);
+    expect(state.activePlayerId).toBe(p1);
+
+    // Player 3 forfeits while Player 1 is active
+    const f1 = executeForfeit(state, p3);
+    expect(f1.nextState.turnPhase).toBe('WAITING_DRAW');
+    expect(f1.nextState.activePlayerId).toBe(p1); // Active turn preserved!
+    expect(f1.nextState.playerStatuses[p3]).toBe('DROPPED');
+    expect(f1.event.type).toBe('PLAYER_DROPPED');
+
+    // Player 1 (currently active) forfeits -> Player 2 is last remaining, wins automatically!
+    const f2 = executeForfeit(f1.nextState, p1);
+    expect(f2.nextState.turnPhase).toBe('ROUND_ENDED');
+    expect(f2.nextState.roundWinnerId).toBe(p2);
+    expect(f2.event.type).toBe('ROUND_WON_BY_LAST_STANDING');
   });
 });

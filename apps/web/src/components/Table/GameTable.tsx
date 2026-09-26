@@ -1,5 +1,6 @@
 import React from 'react';
 import { CardDto } from '@rummy/shared';
+import { LogOut } from 'lucide-react';
 import { CenterPiles } from './CenterPiles.js';
 import { OpponentSeat } from './OpponentSeat.js';
 import { PlayerHand } from './PlayerHand.js';
@@ -29,12 +30,14 @@ export interface GameTableProps {
   onCardClick: (card: CardDto) => void;
   onGroupSelected: () => void;
   onAutoSort: () => void;
+  onMoveCard?: (cardId: string, targetGroupIndex: number, targetCardIndex?: number) => void;
   onDrawClosed: () => void;
   onDrawOpen: () => void;
-  onDiscard: () => void;
+  onDiscard: (cardId?: string) => void;
   onDeclare: () => void;
   onDrop: () => void;
-  onFinishSlotClick: () => void;
+  onExitTable?: () => void;
+  onFinishSlotClick: (cardId?: string) => void;
 }
 
 export const GameTable: React.FC<GameTableProps> = ({
@@ -52,15 +55,18 @@ export const GameTable: React.FC<GameTableProps> = ({
   onCardClick,
   onGroupSelected,
   onAutoSort,
+  onMoveCard,
   onDrawClosed,
   onDrawOpen,
   onDiscard,
   onDeclare,
   onDrop,
+  onExitTable,
   onFinishSlotClick
 }) => {
   const isMyTurn = Boolean(activePlayerId && myUserId && activePlayerId === myUserId);
   const canDraw = isMyTurn && turnPhase === 'WAITING_DRAW';
+  const canDiscard = isMyTurn && turnPhase === 'WAITING_DISCARD';
 
   const activeOpponent = opponents.find((o) => o.id === activePlayerId);
   const activeOpponentName = activeOpponent ? activeOpponent.username : 'Opponent';
@@ -103,7 +109,7 @@ export const GameTable: React.FC<GameTableProps> = ({
                 <span className="banner-pulse gold" />
                 <span className="banner-badge gold">YOUR TURN</span>
                 <span className="banner-instruction">
-                  Select 1 card from your hand, then click <strong>Discard</strong> or <strong>Finish Slot</strong>
+                  Select 1 card from your hand, then click <strong>Discard</strong> or drag directly to <strong>Open Pile</strong>
                 </span>
               </div>
             )
@@ -123,20 +129,23 @@ export const GameTable: React.FC<GameTableProps> = ({
           wildJoker={wildJoker}
           openCard={openPileTop}
           canDraw={canDraw}
+          canDiscard={canDiscard}
           onDrawClosed={onDrawClosed}
           onDrawOpen={onDrawOpen}
-          onFinishSelect={onFinishSlotClick}
+          onFinishSelect={() => onFinishSlotClick()}
           selectedFinishCard={selectedFinishCard}
+          onDiscardCard={(cardId) => onDiscard(cardId)}
+          onDropFinishCard={(cardId) => onFinishSlotClick(cardId)}
         />
 
         {/* Bottom Area: Action Controls + Player Hand */}
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+        <div className="player-bottom-dock">
           <ActionControls
             isMyTurn={isMyTurn}
             turnPhase={turnPhase}
             selectedCardCount={selectedCardIds.length}
             isFirstTurn={isFirstTurn}
-            onDiscard={onDiscard}
+            onDiscard={() => onDiscard()}
             onDeclare={onDeclare}
             onDrop={onDrop}
             remainingTurnTimeMs={remainingTurnTimeMs}
@@ -150,6 +159,9 @@ export const GameTable: React.FC<GameTableProps> = ({
             onCardClick={onCardClick}
             onGroupSelected={onGroupSelected}
             onAutoSort={onAutoSort}
+            onMoveCard={onMoveCard}
+            onDiscardCard={(cardId) => onDiscard(cardId)}
+            onDropFinishCard={(cardId) => onFinishSlotClick(cardId)}
           />
         </div>
       </div>

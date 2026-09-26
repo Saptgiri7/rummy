@@ -267,6 +267,11 @@ export class WebSocketGateway {
           break;
         }
 
+        case 'LEAVE_TABLE': {
+          await this.roomCoordinator.handleLeaveTable(conn, message.payload.roomId);
+          break;
+        }
+
         case 'JOIN_MATCHMAKING': {
           await matchmaker.enqueue(conn.userId, message.payload.maxPlayers);
           break;

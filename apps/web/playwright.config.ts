@@ -17,13 +17,13 @@ export default defineConfig({
     {
       command: 'pnpm --filter @rummy/server dev',
       url: 'http://localhost:4000/health',
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       timeout: 25000
     },
     {
       command: 'pnpm --filter @rummy/web dev',
       url: 'http://localhost:3000',
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       timeout: 25000
     }
   ],

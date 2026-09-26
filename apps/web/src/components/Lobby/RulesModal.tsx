@@ -37,14 +37,14 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ padding: '10px 14px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-              <div style={{ color: '#34d399', fontWeight: 600, marginBottom: '2px' }}>1. Pure Sequence (First Life — Mandatory)</div>
+              <div style={{ color: '#34d399', fontWeight: 600, marginBottom: '2px' }}>1. Pure Sequence (First Life: Mandatory)</div>
               <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
                 3 or more consecutive cards of the same suit <em>without jokers</em>. E.g. <strong style={{ color: '#f1f5f9' }}>4♠ - 5♠ - 6♠</strong>.
               </div>
             </div>
 
             <div style={{ padding: '10px 14px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
-              <div style={{ color: '#38bdf8', fontWeight: 600, marginBottom: '2px' }}>2. Second Sequence (Second Life — Mandatory)</div>
+              <div style={{ color: '#38bdf8', fontWeight: 600, marginBottom: '2px' }}>2. Second Sequence (Second Life: Mandatory)</div>
               <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
                 Can be pure or impure with Wild or Printed Jokers. E.g. <strong style={{ color: '#f1f5f9' }}>8♥ - 9♥ - 🃏</strong>.
               </div>

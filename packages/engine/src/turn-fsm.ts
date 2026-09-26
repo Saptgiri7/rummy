@@ -291,11 +291,26 @@ export function executeDeclare(
 }
 
 /**
- * Executes a Player Drop action.
+ * Executes a Player Drop action on their own turn.
  */
 export function executeDrop(state: GameRoundState, playerId: string): FsmActionResult {
   if (state.activePlayerId !== playerId) {
     throw new Error(`Can only drop on own turn. Active: ${state.activePlayerId}`);
+  }
+  return executeForfeit(state, playerId);
+}
+
+/**
+ * Executes a Player Forfeit / Table Exit / Disconnect Auto-Drop action.
+ * Can be called at any time regardless of whose turn it is.
+ */
+export function executeForfeit(state: GameRoundState, playerId: string): FsmActionResult {
+  if (state.turnPhase === 'ROUND_ENDED') {
+    throw new Error('Cannot forfeit a round that has already ended');
+  }
+
+  if (state.playerStatuses[playerId] !== 'ACTIVE') {
+    throw new Error(`Player ${playerId} is already ${state.playerStatuses[playerId]}`);
   }
 
   const isFirstTurn = state.isFirstTurnForPlayer[playerId] ?? false;
@@ -309,7 +324,7 @@ export function executeDrop(state: GameRoundState, playerId: string): FsmActionR
   const activeRemaining = state.players.filter((p) => nextStatuses[p] === 'ACTIVE');
 
   if (activeRemaining.length === 1) {
-    // Only one player left — they win automatically!
+    // Only one player left: they win automatically (heads-up or 2 remaining in 6-player table)
     const winnerId = activeRemaining[0]!;
     const nextState: GameRoundState = Object.freeze({
       ...state,
@@ -327,19 +342,26 @@ export function executeDrop(state: GameRoundState, playerId: string): FsmActionR
     };
   }
 
-  const nextPlayerId = getNextActivePlayer(state.players, nextStatuses, playerId);
+  // If the forfeiting player was the currently active player, advance turn
+  let nextActiveId = state.activePlayerId;
+  let nextPhase = state.turnPhase;
+  if (state.activePlayerId === playerId) {
+    nextActiveId = getNextActivePlayer(state.players, nextStatuses, playerId);
+    nextPhase = 'WAITING_DRAW';
+  }
+
   const nextState: GameRoundState = Object.freeze({
     ...state,
     playerStatuses: Object.freeze(nextStatuses),
-    activePlayerId: nextPlayerId,
-    turnPhase: 'WAITING_DRAW'
+    activePlayerId: nextActiveId,
+    turnPhase: nextPhase
   });
 
   return {
     nextState,
     event: {
       type: 'PLAYER_DROPPED',
-      payload: { playerId, penalty, nextActivePlayerId: nextPlayerId }
+      payload: { playerId, penalty, nextActivePlayerId: nextActiveId }
     }
   };
 }

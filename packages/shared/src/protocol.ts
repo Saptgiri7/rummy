@@ -83,6 +83,13 @@ export const DropHandMessageSchema = z.object({
   })
 });
 
+export const LeaveTableMessageSchema = z.object({
+  type: z.literal('LEAVE_TABLE'),
+  payload: z.object({
+    roomId: z.string().min(1)
+  })
+});
+
 export const SubmitFinalMeldsMessageSchema = z.object({
   type: z.literal('SUBMIT_FINAL_MELDS'),
   payload: z.object({
@@ -99,6 +106,7 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
   JoinRoomMessageSchema,
   StartRoomGameMessageSchema,
   LeaveRoomMessageSchema,
+  LeaveTableMessageSchema,
   DrawCardMessageSchema,
   DiscardCardMessageSchema,
   DeclareShowMessageSchema,

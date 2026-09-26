@@ -7,21 +7,30 @@ export interface CenterPilesProps {
   openCard?: CardDto | null;
   closedDeckCount?: number;
   canDraw?: boolean;
+  canDiscard?: boolean;
   onDrawClosed?: () => void;
   onDrawOpen?: () => void;
   onFinishSelect?: () => void;
   selectedFinishCard?: CardDto | null;
+  onDiscardCard?: (cardId: string) => void;
+  onDropFinishCard?: (cardId: string) => void;
 }
 
 export const CenterPiles: React.FC<CenterPilesProps> = ({
   wildJoker,
   openCard,
   canDraw = false,
+  canDiscard = false,
   onDrawClosed,
   onDrawOpen,
   onFinishSelect,
-  selectedFinishCard
+  selectedFinishCard,
+  onDiscardCard,
+  onDropFinishCard
 }) => {
+  const [isDragOverDiscard, setIsDragOverDiscard] = React.useState(false);
+  const [isDragOverFinish, setIsDragOverFinish] = React.useState(false);
+
   return (
     <div className="center-piles-container">
       {/* 1. Closed Draw Deck + Wild Joker */}
@@ -61,11 +70,30 @@ export const CenterPiles: React.FC<CenterPilesProps> = ({
       <div
         id="open-discard-pile"
         data-testid="open-discard-pile"
-        className={`deck-pile-slot ${canDraw && openCard ? 'can-draw-pulse' : ''}`}
+        data-drop-zone="discard"
+        className={`deck-pile-slot ${canDraw && openCard ? 'can-draw-pulse' : ''} ${isDragOverDiscard ? 'drop-target-active' : ''}`}
         onClick={() => {
           if (canDraw && openCard && onDrawOpen) {
             onDrawOpen();
           }
+        }}
+        onDragOver={(e) => {
+          if (canDiscard) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (!isDragOverDiscard) setIsDragOverDiscard(true);
+          }
+        }}
+        onDragLeave={() => setIsDragOverDiscard(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOverDiscard(false);
+          try {
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            if (data.cardId && onDiscardCard) {
+              onDiscardCard(data.cardId);
+            }
+          } catch (err) {}
         }}
         style={{ cursor: canDraw && openCard ? 'pointer' : 'default' }}
       >
@@ -89,18 +117,41 @@ export const CenterPiles: React.FC<CenterPilesProps> = ({
             Empty
           </div>
         )}
-        {canDraw && openCard && (
+        {canDraw && openCard ? (
           <span style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 700 }}>
             Pick Discard
           </span>
-        )}
+        ) : canDiscard ? (
+          <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 700 }}>
+            Drop to Discard
+          </span>
+        ) : null}
       </div>
 
       {/* 3. Finish Slot */}
       <div
         id="finish-slot"
-        className="deck-pile-slot"
+        data-drop-zone="finish"
+        className={`deck-pile-slot ${isDragOverFinish ? 'drop-target-active' : ''}`}
         onClick={onFinishSelect}
+        onDragOver={(e) => {
+          if (canDiscard) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (!isDragOverFinish) setIsDragOverFinish(true);
+          }
+        }}
+        onDragLeave={() => setIsDragOverFinish(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOverFinish(false);
+          try {
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            if (data.cardId && onDropFinishCard) {
+              onDropFinishCard(data.cardId);
+            }
+          } catch (err) {}
+        }}
       >
         <span className="deck-slot-label" style={{ color: '#d4af37' }}>Finish Slot</span>
         {selectedFinishCard ? (
@@ -125,6 +176,11 @@ export const CenterPiles: React.FC<CenterPilesProps> = ({
             }}
           >
             <span>Declare Slot</span>
+            {canDiscard && (
+              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '4px' }}>
+                Drop to Declare
+              </span>
+            )}
           </div>
         )}
       </div>

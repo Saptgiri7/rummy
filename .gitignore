@@ -11,3 +11,32 @@ test-results/
 playwright-report/
 logs/
 .DS_Store
+
+# Security & Credentials
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.id_rsa
+*.id_dsa
+scratch/
+
+# IDE & OS
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Session Transcripts & Local Exports
+docs/previous-conversation*
+
+# Internal Documentation & Agent Skills
+docs/
+.agents/
+AGENTS.md
+GEMINI.md
+.skills
+.permissions
+plan.txt

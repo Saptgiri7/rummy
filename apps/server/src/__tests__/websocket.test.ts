@@ -397,4 +397,26 @@ describe('Real-Time WebSocket Server & Turn Loop Integration Tests', () => {
     client1.ws.close();
     client2.ws.close();
   });
+
+  it('handles LEAVE_TABLE message with immediate auto-win for opponent in heads-up match', async () => {
+    const roomId = `room_leave_${Date.now()}`;
+
+    const client1 = await connectClient(player1.token);
+    const client2 = await connectClient(player2.token);
+
+    await coordinator.initializeRoom(roomId, [player1.id, player2.id]);
+
+    // Player 1 sends LEAVE_TABLE
+    const p2WonPromise = waitForMessage(client2.ws, 'ROUND_COMPLETED');
+    client1.ws.send(JSON.stringify({
+      type: 'LEAVE_TABLE',
+      payload: { roomId }
+    }));
+
+    const roundComp = await p2WonPromise;
+    expect(roundComp.payload.winnerId).toBe(player2.id);
+
+    client1.ws.close();
+    client2.ws.close();
+  });
 });

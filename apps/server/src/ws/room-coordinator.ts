@@ -8,6 +8,7 @@ import {
   executeDiscard,
   executeDeclare,
   executeDrop,
+  executeForfeit,
   calculateOpponentPenalty,
   Card
 } from '@rummy/engine';
@@ -47,7 +48,7 @@ export class RoomCoordinator {
 
   constructor(config: RoomCoordinatorConfig = {}) {
     this.turnTimeoutMs = config.turnTimeoutMs ?? 30000;
-    this.gracePeriodMs = config.gracePeriodMs ?? 45000;
+    this.gracePeriodMs = config.gracePeriodMs ?? 20000;
   }
 
   getActiveRoomCount(): number {
@@ -334,6 +335,63 @@ export class RoomCoordinator {
   }
 
   /**
+   * Handles player forfeiting / exiting the active game table.
+   * Can be invoked at any time, even when it is not the player's turn.
+   */
+  async handleLeaveTable(conn: ClientConnection, roomId: string): Promise<void> {
+    await withLock(getRoomLockKey(roomId), 2500, async () => {
+      const state = await getRoomState(roomId);
+      if (!state || state.turnPhase === 'ROUND_ENDED') {
+        await clearUserActiveRoom(conn.userId);
+        registry.leaveRoom(conn.connectionId, roomId);
+        return;
+      }
+
+      if (!state.players.includes(conn.userId) || state.playerStatuses[conn.userId] !== 'ACTIVE') {
+        await clearUserActiveRoom(conn.userId);
+        registry.leaveRoom(conn.connectionId, roomId);
+        return;
+      }
+
+      try {
+        this.cancelGraceTimer(roomId, conn.userId);
+        const actionResult = executeForfeit(state, conn.userId);
+
+        await clearUserActiveRoom(conn.userId);
+        registry.leaveRoom(conn.connectionId, roomId);
+
+        if (actionResult.nextState.turnPhase === 'ROUND_ENDED') {
+          // Last remaining active player wins!
+          const winnerId = actionResult.nextState.roundWinnerId!;
+          this.cancelTurnTimer(roomId);
+          await this.settleRound(roomId, actionResult.nextState, winnerId);
+        } else {
+          await saveRoomState(actionResult.nextState);
+          const nextActiveId = actionResult.nextState.activePlayerId;
+          if (state.activePlayerId === conn.userId) {
+            this.startTurnTimer(roomId, nextActiveId, this.turnTimeoutMs);
+          }
+
+          const dropMsg: ServerMessage = {
+            type: 'PLAYER_DROPPED',
+            payload: {
+              roomId,
+              playerId: conn.userId,
+              penalty: actionResult.event.payload['penalty'] as number,
+              nextActivePlayerId: nextActiveId
+            }
+          };
+          registry.broadcastToRoom(roomId, dropMsg);
+        }
+      } catch (err: unknown) {
+        logger.error(`Error in handleLeaveTable for user ${conn.userId} in room ${roomId}:`, err);
+        const msg = err instanceof Error ? err.message : 'Leave table failed';
+        this.sendError(conn, ErrorCode.INTERNAL_SERVER_ERROR, msg);
+      }
+    });
+  }
+
+  /**
    * Handles declaration (Show) submission.
    */
   async handleDeclare(
@@ -536,11 +594,19 @@ export class RoomCoordinator {
   startTurnTimer(roomId: string, activePlayerId: string, durationMs: number): void {
     this.cancelTurnTimer(roomId);
 
-    this.turnEndTimes.set(roomId, Date.now() + durationMs);
+    // If active player is currently disconnected, expedite turn to 10s max
+    const isConnected = registry.getConnectionsByUserId(activePlayerId).length > 0;
+    const effectiveDuration = isConnected ? durationMs : Math.min(durationMs, 10000);
+
+    this.turnEndTimes.set(roomId, Date.now() + effectiveDuration);
 
     const timer = setTimeout(async () => {
-      await this.executeAutoTurn(roomId, activePlayerId);
-    }, durationMs);
+      try {
+        await this.executeAutoTurn(roomId, activePlayerId);
+      } catch (err) {
+        logger.error(`Error in executeAutoTurn for room ${roomId}:`, err);
+      }
+    }, effectiveDuration);
 
     if (timer.unref) timer.unref();
     this.turnTimers.set(roomId, timer);
@@ -560,109 +626,119 @@ export class RoomCoordinator {
    */
   async executeAutoTurn(roomId: string, expectedPlayerId: string): Promise<void> {
     await withLock(getRoomLockKey(roomId), 2500, async () => {
-      const state = await getRoomState(roomId);
-      if (!state || state.turnPhase === 'ROUND_ENDED' || state.activePlayerId !== expectedPlayerId) {
-        return;
-      }
+      try {
+        const state = await getRoomState(roomId);
+        if (!state || state.turnPhase === 'ROUND_ENDED' || state.activePlayerId !== expectedPlayerId) {
+          return;
+        }
 
-      const currentMissed = (state.playerMissedTurns[expectedPlayerId] ?? 0) + 1;
+        const isConnected = registry.getConnectionsByUserId(expectedPlayerId).length > 0;
+        const currentMissed = (state.playerMissedTurns[expectedPlayerId] ?? 0) + 1;
 
-      if (currentMissed >= 3) {
-        // 3 consecutive missed turns = Auto-Drop
-        console.log(`[AutoPlay] Player ${expectedPlayerId} missed 3 turns in room ${roomId}; auto-dropping`);
-        const dropResult = executeDrop(state, expectedPlayerId);
+        // Auto-forfeit if 3 missed turns or if disconnected player misses turn
+        if (currentMissed >= 3 || (!isConnected && currentMissed >= 2)) {
+          logger.info(`[AutoPlay] Player ${expectedPlayerId} missed turn in room ${roomId} (connected: ${isConnected}); auto-forfeiting`);
+          const dropResult = executeForfeit(state, expectedPlayerId);
 
-        if (dropResult.nextState.turnPhase === 'ROUND_ENDED') {
-          const winnerId = dropResult.nextState.roundWinnerId!;
-          this.cancelTurnTimer(roomId);
-          await this.settleRound(roomId, dropResult.nextState, winnerId);
-        } else {
-          await saveRoomState(dropResult.nextState);
-          const nextActiveId = dropResult.nextState.activePlayerId;
-          this.startTurnTimer(roomId, nextActiveId, this.turnTimeoutMs);
+          if (dropResult.nextState.turnPhase === 'ROUND_ENDED') {
+            const winnerId = dropResult.nextState.roundWinnerId!;
+            this.cancelTurnTimer(roomId);
+            await this.settleRound(roomId, dropResult.nextState, winnerId);
+          } else {
+            await saveRoomState(dropResult.nextState);
+            const nextActiveId = dropResult.nextState.activePlayerId;
+            this.startTurnTimer(roomId, nextActiveId, this.turnTimeoutMs);
 
-          const dropMsg: ServerMessage = {
-            type: 'PLAYER_DROPPED',
+            const dropMsg: ServerMessage = {
+              type: 'PLAYER_DROPPED',
+              payload: {
+                roomId,
+                playerId: expectedPlayerId,
+                penalty: dropResult.event.payload['penalty'] as number,
+                nextActivePlayerId: nextActiveId
+              }
+            };
+            registry.broadcastToRoom(roomId, dropMsg);
+          }
+          return;
+        }
+
+        // Auto-Play: Draw from CLOSED deck if in WAITING_DRAW
+        let currentState = state;
+        let drawnCard: Card | undefined;
+
+        if (currentState.turnPhase === 'WAITING_DRAW') {
+          const drawResult = executeDraw(currentState, expectedPlayerId, 'CLOSED');
+          currentState = drawResult.nextState;
+          drawnCard = drawResult.event.payload['drawnCard'] as Card;
+
+          // Broadcast public draw
+          const publicDrawMsg: ServerMessage = {
+            type: 'CARD_DRAWN_PUBLIC',
             payload: {
               roomId,
               playerId: expectedPlayerId,
-              penalty: dropResult.event.payload['penalty'] as number,
-              nextActivePlayerId: nextActiveId
+              source: 'CLOSED',
+              cardCount: currentState.playerHands[expectedPlayerId]?.length ?? 14
             }
           };
-          registry.broadcastToRoom(roomId, dropMsg);
+          registry.broadcastToRoom(roomId, publicDrawMsg);
+
+          // Unicast private draw if player connection is still open
+          const conn = registry.getConnectionByUserId(expectedPlayerId);
+          if (conn) {
+            const privateDrawMsg: ServerMessage = {
+              type: 'CARD_DRAWN_PRIVATE',
+              payload: {
+                roomId,
+                drawnCard,
+                hand: [...(currentState.playerHands[expectedPlayerId] ?? [])]
+              }
+            };
+            registry.sendToConnection(conn.connectionId, privateDrawMsg);
+          }
         }
-        return;
-      }
 
-      // Auto-Play: Draw from CLOSED deck if in WAITING_DRAW
-      let currentState = state;
-      let drawnCard: Card | undefined;
+        // In WAITING_DISCARD: Discard the drawn card, or fallback to first card
+        const hand = currentState.playerHands[expectedPlayerId] ?? [];
+        const cardToDiscard = drawnCard ?? hand[0];
 
-      if (currentState.turnPhase === 'WAITING_DRAW') {
-        const drawResult = executeDraw(currentState, expectedPlayerId, 'CLOSED');
-        currentState = drawResult.nextState;
-        drawnCard = drawResult.event.payload['drawnCard'] as Card;
+        if (!cardToDiscard) {
+          // If hand is somehow empty, forfeit
+          const forfeitRes = executeForfeit(currentState, expectedPlayerId);
+          await saveRoomState(forfeitRes.nextState);
+          return;
+        }
 
-        // Broadcast public draw
-        const publicDrawMsg: ServerMessage = {
-          type: 'CARD_DRAWN_PUBLIC',
+        const discardResult = executeDiscard(currentState, expectedPlayerId, cardToDiscard.id);
+        const nextActiveId = discardResult.nextState.activePlayerId;
+
+        // Update missed turns in next state
+        const stateWithMissed: GameRoundState = Object.freeze({
+          ...discardResult.nextState,
+          playerMissedTurns: Object.freeze({
+            ...discardResult.nextState.playerMissedTurns,
+            [expectedPlayerId]: currentMissed
+          })
+        });
+
+        await saveRoomState(stateWithMissed);
+        this.startTurnTimer(roomId, nextActiveId, this.turnTimeoutMs);
+
+        const discardMsg: ServerMessage = {
+          type: 'CARD_DISCARDED',
           payload: {
             roomId,
             playerId: expectedPlayerId,
-            source: 'CLOSED',
-            cardCount: currentState.playerHands[expectedPlayerId]?.length ?? 14
+            discardedCard: cardToDiscard,
+            nextActivePlayerId: nextActiveId,
+            turnTimeoutMs: this.turnTimeoutMs
           }
         };
-        registry.broadcastToRoom(roomId, publicDrawMsg);
-
-        // Unicast private draw if player connection is still open
-        const conn = registry.getConnectionByUserId(expectedPlayerId);
-        if (conn) {
-          const privateDrawMsg: ServerMessage = {
-            type: 'CARD_DRAWN_PRIVATE',
-            payload: {
-              roomId,
-              drawnCard,
-              hand: [...(currentState.playerHands[expectedPlayerId] ?? [])]
-            }
-          };
-          registry.sendToConnection(conn.connectionId, privateDrawMsg);
-        }
+        registry.broadcastToRoom(roomId, discardMsg);
+      } catch (err) {
+        logger.error(`Error in executeAutoTurn execution for room ${roomId}:`, err);
       }
-
-      // In WAITING_DISCARD: Discard the drawn card, or fallback to first card
-      const hand = currentState.playerHands[expectedPlayerId] ?? [];
-      const cardToDiscard = drawnCard ?? hand[0];
-
-      if (!cardToDiscard) return;
-
-      const discardResult = executeDiscard(currentState, expectedPlayerId, cardToDiscard.id);
-      const nextActiveId = discardResult.nextState.activePlayerId;
-
-      // Update missed turns in next state
-      const stateWithMissed: GameRoundState = Object.freeze({
-        ...discardResult.nextState,
-        playerMissedTurns: Object.freeze({
-          ...discardResult.nextState.playerMissedTurns,
-          [expectedPlayerId]: currentMissed
-        })
-      });
-
-      await saveRoomState(stateWithMissed);
-      this.startTurnTimer(roomId, nextActiveId, this.turnTimeoutMs);
-
-      const discardMsg: ServerMessage = {
-        type: 'CARD_DISCARDED',
-        payload: {
-          roomId,
-          playerId: expectedPlayerId,
-          discardedCard: cardToDiscard,
-          nextActivePlayerId: nextActiveId,
-          turnTimeoutMs: this.turnTimeoutMs
-        }
-      };
-      registry.broadcastToRoom(roomId, discardMsg);
     });
   }
 
@@ -672,9 +748,9 @@ export class RoomCoordinator {
 
     const timer = setTimeout(async () => {
       this.disconnectGraceTimers.delete(key);
-      console.log(`[GraceTimer] Disconnect grace expired for user ${userId} in room ${roomId}`);
+      logger.info(`[GraceTimer] Disconnect grace expired for user ${userId} in room ${roomId}`);
 
-      // Auto-drop the disconnected player
+      // Auto-forfeit the disconnected player
       const connMock: ClientConnection = {
         connectionId: `mock_${userId}`,
         userId,
@@ -683,7 +759,7 @@ export class RoomCoordinator {
         isAlive: false,
         connectedAt: Date.now()
       };
-      await this.handleDrop(connMock, roomId);
+      await this.handleLeaveTable(connMock, roomId);
     }, gracePeriodMs);
 
     if (timer.unref) timer.unref();

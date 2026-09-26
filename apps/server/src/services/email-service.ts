@@ -181,7 +181,7 @@ export class EmailService {
     await this.initTransporter();
 
     const fromAddress = process.env['SMTP_FROM'] || '"Rummy Master" <noreplyrummymaster@gmail.com>';
-    const subject = `Your Verification Code is ${code} — Rummy Master`;
+    const subject = `Your Verification Code is ${code} - Rummy Master`;
     const text = `Your Rummy Master verification code is: ${code}\n\nThis code will expire in 10 minutes. Never share this code with anyone.`;
     const html = this.generateOtpEmailHtml(code, purpose);
 

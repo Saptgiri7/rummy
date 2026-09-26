@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# migrate.sh — Generate and/or apply database migrations
+# migrate.sh : Generate and/or apply database migrations
 # =============================================================================
 # Usage:
 #   bash scripts/migrate.sh              # Apply pending migrations
@@ -119,10 +119,10 @@ print_ok "All migrations applied successfully"
 # ─── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}  🗄️  Database — Migrations Complete${NC}"
+echo -e "${GREEN}  🗄️  Database : Migrations Complete${NC}"
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
 if [ "$DO_FRESH" = true ]; then
-  echo -e "  ${YELLOW}Fresh reset performed — all previous data cleared${NC}"
+  echo -e "  ${YELLOW}Fresh reset performed : all previous data cleared${NC}"
 fi
 echo -e "  Next: ${CYAN}pnpm start${NC}  or  ${CYAN}pnpm start -- --no-infra${NC}"
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
