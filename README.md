@@ -1,8 +1,8 @@
-# Rummy Master: Production-Grade 13-Card Indian Rummy Platform
+# Rummy Master: 13-Card Indian Rummy Platform
 
-A high-concurrency, real-time multiplayer 13-Card Indian Rummy web platform built for deterministic competitive fairness, low-latency state synchronization, authentic casino ergonomics, and cross-device responsiveness.
+A real-time multiplayer 13-Card Indian Rummy web platform built for deterministic competitive play, low-latency state synchronization, authentic casino ergonomics, and cross-device responsiveness.
 
-Built with **TypeScript**, **React 19**, **Vite**, **Node.js**, **WebSockets**, **Redis 7**, **PostgreSQL 16**, and **Drizzle ORM** inside a high-performance **Turborepo** monorepo.
+Built with **TypeScript**, **React 19**, **Vite**, **Node.js**, **WebSockets**, **Redis 7**, **PostgreSQL 16**, and **Drizzle ORM** inside a **Turborepo** monorepo.
 
 ---
 
@@ -24,14 +24,13 @@ Built with **TypeScript**, **React 19**, **Vite**, **Node.js**, **WebSockets**, 
 - [Operational Scripts and Automation](#operational-scripts-and-automation)
 - [Testing and Verification](#testing-and-verification)
 - [Contributing Guidelines](#contributing-guidelines)
-- [Security and Anti-Cheat Governance](#security-and-anti-cheat-governance)
-- [License](#license)
+- [Security and Fair-Play Design](#security-and-fair-play-design)
 
 ---
 
 ## Overview
 
-**Rummy Master** is a full-stack, enterprise-grade digital implementation of traditional 13-Card Indian Rummy (Paplu). It is designed to deliver sub-10ms turn response times, server-authoritative state progression, and an authentic casino felt experience across desktop browsers, tablets, mobile phones, and 4K displays.
+**Rummy Master** is a full-stack digital implementation of traditional 13-Card Indian Rummy (Paplu) featuring real-time multiplayer synchronization, server-authoritative state progression, and an authentic casino felt interface across desktop browsers, tablets, and mobile phones.
 
 ### Key Highlights
 
@@ -45,7 +44,7 @@ Built with **TypeScript**, **React 19**, **Vite**, **Node.js**, **WebSockets**, 
 
 ## Game Rules and Mechanics
 
-Rummy Master adheres strictly to standard 13-Card Indian Rummy tournament regulations:
+Rummy Master implements standard 13-Card Indian Rummy rules:
 
 ### 1. Deck Composition
 - Played with **2 standard 52-card decks** plus **2 printed jokers** (106 cards total).
@@ -466,20 +465,14 @@ Push your branch and submit a Pull Request describing your changes, design decis
 
 ---
 
-## Security and Anti-Cheat Governance
+## Security and Fair-Play Design
 
 ### Zero Credential Exposure Policy
 - Never commit `.env` files, API keys, private certificates (`*.pem`, `*.key`), or real user credentials.
 - All secrets must use environment variable fallbacks or `.env.example` placeholders.
 - The `.gitignore` is pre-configured to ignore sensitive credentials, session logs, and scratch directories.
 
-### Game Fair-Play Rules
+### Fair-Play Design
 - The server is authoritative on card order and deck state.
 - Closed deck order is held only in Redis in-memory storage and is never transmitted to clients.
 - Draws, discards, and declares are locked with Redlock to prevent concurrent manipulation or double-play vulnerabilities.
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
